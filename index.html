@@ -108,6 +108,10 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .cambar{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px}
 .cam canvas#freeze{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .cam.frozen .aim{border-style:dashed;opacity:.55;pointer-events:none}
+.cam .busy{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,12,11,.55);color:#fff;font:600 16px var(--body);text-align:center;padding:16px;z-index:3}
+.cam .spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.cam .spin{animation-duration:2.4s}}
 .cam .sel{position:absolute;border:2px solid var(--accent);background:rgba(245,194,43,.18);border-radius:4px;pointer-events:none}
 .cam.narrow .aim{top:34%;height:13%}
 .cam .camtorch{position:absolute;left:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
@@ -208,13 +212,14 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <canvas id="freeze" hidden></canvas>
     <div class="aim" aria-hidden="true"></div>
     <div class="sel" id="sel" hidden></div>
+    <div class="busy" id="busy" hidden><div class="spin" aria-hidden="true"></div><span id="busyText">Odczytuję napis…</span></div>
     <button id="camClose" class="camclose" type="button">Zamknij</button>
     <button id="camTorch" class="camtorch" type="button" aria-pressed="false" hidden>Latarka</button>
     <div class="cambar">
       <button id="camFrame" class="ghost" type="button">Ramka: cała nazwa</button>
       <button id="camText" type="button">Zatrzymaj i odczytaj</button>
       <button id="camBack" class="ghost" type="button" hidden>Skanuj ponownie</button>
-      <button id="camDone" type="button" hidden>Gotowe</button>
+      <button id="camDone" type="button" hidden>Koniec</button>
       <span id="camHint">Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.</span>
     </div>
   </div>
@@ -239,7 +244,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.18 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.19 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -268,7 +273,7 @@ const PREFIX = "Wyszukaj dla mnie instrukcję resetu pamięci lub ustawień fabr
 const $ = id => document.getElementById(id);
 const q = $("q"), go = $("go"), statusEl = $("status"), meta = $("meta");
 
-function setStatus(t, err, ok){ statusEl.textContent = t; statusEl.classList.toggle("err", !!err); statusEl.classList.toggle("ok", !!ok && !err); }
+function setStatus(t, err, ok){ if(typeof busyOn !== "undefined" && busyOn && !err && /…|\.\.\./.test(t)) $("busyText").textContent = t; statusEl.textContent = t; statusEl.classList.toggle("err", !!err); statusEl.classList.toggle("ok", !!ok && !err); }
 
 function eanCheck(d){
   if(!/^\d+$/.test(d) || ![8,12,13,14].includes(d.length)) return null;
@@ -594,7 +599,7 @@ function videoTrack(){ const v = $("video"); return v.srcObject ? v.srcObject.ge
 function stopLive(){
   if(liveReader){ try{ liveReader.reset(); }catch(e){} liveReader = null; }
   const v = $("video"); if(v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
-  unfreeze();
+  unfreeze(); setBusy(false);
   torchOn = false; $("camTorch").hidden = true; $("camTorch").setAttribute("aria-pressed", "false");
   $("camBox").hidden = true; $("btnLive").hidden = false;
 }
@@ -649,7 +654,7 @@ function centerCam(){
   setTimeout(go, 450);
 }
 $("video").addEventListener("loadedmetadata", () => { if(!$("camBox").hidden) centerCam(); });
-/* Gdy nad podglądem zmienia się zawartość (pole, napisy, komunikaty), podgląd zostaje na środku aż do „Gotowe” */
+/* Gdy nad podglądem zmienia się zawartość (pole, napisy, komunikaty), podgląd zostaje na środku aż do „Koniec” */
 let keepRaf = 0;
 function keepCam(){
   if($("camBox").hidden || drag) return;
@@ -692,6 +697,13 @@ function photoToImage(blob){
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* Zatrzymany obraz: odczyt ramki, potem dowolny fragment zaznaczony palcem */
+var busyOn = false;
+function setBusy(on, text){
+  busyOn = on;
+  $("busy").hidden = !on;
+  if(text) $("busyText").textContent = text;
+  ["camBack", "camDone", "camText"].forEach(id => { $(id).disabled = on; });
+}
 function setFrozenUi(on){
   $("camBox").classList.toggle("frozen", on);
   $("freeze").hidden = !on;
@@ -720,7 +732,7 @@ function addLines(newLines, zoomed){
   if(!cur.toLowerCase().includes(best.text.toLowerCase())) q.value = (cur ? cur + " " : "") + best.text;
   update(); showChips(lastLines);
   [...$("chips").querySelectorAll(".pick")].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
-  setStatus("Dodałem „" + best.text + "”. Zaznacz kolejny napis albo dotknij „Gotowe”.");
+  setStatus("Dodałem „" + best.text + "”. Zaznacz kolejny napis albo dotknij „Koniec”.");
   return true;
 }
 /* Odczyt linijka po linijce: prostowanie, podział na wiersze, dwa sposoby przygotowania obrazu */
@@ -882,6 +894,7 @@ $("camText").addEventListener("click", async () => {
   if(!v.videoWidth || frozen) return;
   const btn = $("camText"); btn.disabled = true; btn.textContent = "Odczytuję…";
   if(navigator.vibrate) navigator.vibrate(30);
+  setBusy(true, "Zatrzymuję obraz…");
   showChips([]); lastLines = [];
   let ok = false;
   try{
@@ -908,13 +921,14 @@ $("camText").addEventListener("click", async () => {
   }catch(e){
     setStatus("Nie udało się odczytać napisu. Spróbuj jeszcze raz albo wpisz go ręcznie.", true);
   }
+  setBusy(false);
   btn.disabled = false; btn.textContent = "Zatrzymaj i odczytaj";
   if(ok) success();
 });
 /* Zaznaczanie palcem na zatrzymanym obrazie */
 let drag = null;
 $("freeze").addEventListener("pointerdown", e => {
-  if(!frozen) return;
+  if(!frozen || busyOn) return;
   const r = $("camBox").getBoundingClientRect();
   drag = { x0: e.clientX - r.left, y0: e.clientY - r.top, x1: e.clientX - r.left, y1: e.clientY - r.top };
   $("freeze").setPointerCapture(e.pointerId); e.preventDefault();
@@ -929,12 +943,17 @@ $("freeze").addEventListener("pointermove", e => {
 $("freeze").addEventListener("pointerup", async () => {
   if(!drag || !frozen) return;
   const d = drag; drag = null;
+  if(busyOn){ $("sel").hidden = true; return; }
   let bx = Math.min(d.x0, d.x1), by = Math.min(d.y0, d.y1), bw = Math.abs(d.x1 - d.x0), bh = Math.abs(d.y1 - d.y0);
   if(bw < 24){ $("sel").hidden = true; return; }
   if(bh < 18){ by -= (24 - bh) / 2; bh = 24; }
   const m = frozen.map, x = Math.max(0, (bx - m.ox) / m.sc), y = Math.max(0, (by - m.oy) / m.sc);
   const w = Math.min(frozen.w - x, bw / m.sc), h = Math.min(frozen.h - y, bh / m.sc);
-  const lines = await readRegion(x, y, w, h, true);
+  setBusy(true, "Odczytuję zaznaczony fragment…");
+  let lines = [];
+  try{ lines = await readRegion(x, y, w, h, true); }catch(e){}
+  setBusy(false);
+  $("sel").hidden = true;
   if(addLines(lines, true)) success();
   else setStatus("W zaznaczonym miejscu nie odczytałem napisu. Zaznacz napis trochę szerzej, z małym marginesem.", true);
 });
