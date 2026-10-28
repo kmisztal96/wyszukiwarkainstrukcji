@@ -75,7 +75,7 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .prefix{font-size:15px;color:var(--muted)}
 .prefix b{color:var(--ink);font-weight:600}
 #q{width:100%;font:500 20px/1.3 var(--mono);color:var(--ink);background:var(--bg);border:2px solid var(--line);
-  border-radius:10px;padding:12px;min-height:54px}
+  border-radius:10px;padding:12px;min-height:54px;display:block;resize:none;overflow:hidden;overflow-wrap:anywhere;word-break:break-word}
 #q:focus{outline:none;border-color:var(--accent)}
 .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .meta:empty{display:none}
@@ -202,7 +202,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </header>
 
   <section class="phrase">
-    <input id="q" type="text" inputmode="text" autocomplete="off" placeholder="EAN, nazwa lub model">
+    <textarea id="q" rows="1" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="EAN, nazwa lub model"></textarea>
     <div class="meta" id="meta"></div>
     <div class="chipsbox" id="chipsBox" hidden>
       <span class="label">Odczytane napisy</span>
@@ -246,7 +246,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.02 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.03 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -286,6 +286,7 @@ function eanCheck(d){
 }
 
 function update(){
+  autosize();
   const v = q.value.trim();
   meta.innerHTML = "";
   if(!v){ go.setAttribute("aria-disabled","true"); go.href = "#"; return; }
@@ -315,7 +316,13 @@ function setMode(ai){
 $("modeAi").onclick = () => setMode(true);
 $("modeWeb").onclick = () => setMode(false);
 q.addEventListener("input", () => { update(); });
-q.addEventListener("keydown", e => { if(e.key === "Enter" && q.value.trim()){ go.click(); } });
+q.addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); if(q.value.trim()) go.click(); }
+});
+/* Pole rośnie w dół, żeby cały tekst był widoczny */
+function autosize(){ q.style.height = "auto"; q.style.height = (q.scrollHeight + 4) + "px"; }
+q.addEventListener("input", () => { if(/[\r\n]/.test(q.value)) q.value = q.value.replace(/[\r\n]+/g, " "); autosize(); });
+window.addEventListener("resize", autosize);
 
 
 /* Dekodowanie kodu ze zdjęcia */
