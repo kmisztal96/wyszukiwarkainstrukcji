@@ -246,7 +246,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.05 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.08 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -272,7 +272,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
-const PREFIX = "Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych produktu: ";
+const PREFIX = "Wyszukaj dla mnie instrukcję resetu pamięci lub ustawień fabrycznych produktu: ";
 const $ = id => document.getElementById(id);
 const q = $("q"), go = $("go"), statusEl = $("status"), meta = $("meta");
 
@@ -293,9 +293,9 @@ function update(){
   go.removeAttribute("aria-disabled");
   const digits = v.replace(/\s/g, "");
   const isEan = /^\d+$/.test(digits) && [8, 12, 13, 14].includes(digits.length);
-  const phrase = aiMode ? (isEan ? "Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych dla produktu z kodem EAN: " + digits : PREFIX + v) + ". Załącz zdjęcia instruktażowe."
-    : isEan ? "Instrukcja resetu lub ustawień fabrycznych dla produktu o kodzie EAN: " + digits
-    : v + " instrukcja resetu lub ustawień fabrycznych";
+  const phrase = aiMode ? (isEan ? "Wyszukaj dla mnie instrukcję resetu pamięci lub ustawień fabrycznych dla produktu z kodem EAN: " + digits : PREFIX + v) + ". Załącz zdjęcia instruktażowe."
+    : isEan ? "Instrukcja resetu pamięci lub ustawień fabrycznych dla produktu o kodzie EAN: " + digits
+    : v + " instrukcja resetu pamięci lub ustawień fabrycznych";
   go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(phrase);
   const plain = v.replace(/\s/g,"");
   const ok = eanCheck(plain);
@@ -316,6 +316,16 @@ function setMode(ai){
 $("modeAi").onclick = () => setMode(true);
 $("modeWeb").onclick = () => setMode(false);
 q.addEventListener("input", () => { update(); });
+/* Po wyszukaniu pole czyści się i czeka na kolejny produkt */
+go.addEventListener("click", () => {
+  const v = q.value.trim();
+  if(!v || go.getAttribute("aria-disabled") === "true") return;
+  setTimeout(() => {
+    q.value = ""; update(); showChips([]);
+    setStatus("Wyszukano: " + v + ". Pole jest puste i gotowe na kolejny produkt.");
+    try{ q.focus({ preventScroll: true }); }catch(e){}
+  }, 0);
+});
 q.addEventListener("keydown", e => {
   if(e.key === "Enter"){ e.preventDefault(); if(q.value.trim()) go.click(); }
 });
