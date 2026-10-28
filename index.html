@@ -239,7 +239,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.15 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.18 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -539,7 +539,7 @@ function showChips(lines){
     const t = document.createElement("button");
     t.type = "button"; t.className = "trash"; t.title = "Usuń odczytane napisy"; t.setAttribute("aria-label", "Usuń odczytane napisy");
     t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>';
-    t.onclick = () => { lastLines = []; showChips([]); setStatus("Usunąłem odczytane napisy. Tekst w polu został bez zmian."); };
+    t.onclick = () => { lastLines = []; showChips([]); q.value = ""; update(); setStatus("Usunąłem odczytane napisy i tekst z pola."); };
     box.appendChild(t);
   }
   wrap.hidden = !lines.length;
@@ -697,7 +697,7 @@ function setFrozenUi(on){
   $("freeze").hidden = !on;
   ["camText", "camFrame"].forEach(id => $(id).hidden = on);
   ["camBack", "camDone"].forEach(id => $(id).hidden = !on);
-  $("camHint").textContent = on ? "Obraz zatrzymany. Przeciągnij palcem po napisie, żeby odczytać dokładnie ten fragment." : "Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.";
+  $("camHint").textContent = on ? "Obraz zatrzymany i odczytany. Przeciągnij palcem, aby zaznaczyć tylko wybrany fragment, i odczytać go ponownie." : "Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.";
   $("sel").hidden = true;
 }
 function unfreeze(){ frozen = null; setFrozenUi(false); }
