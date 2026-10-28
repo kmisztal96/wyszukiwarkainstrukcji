@@ -112,7 +112,7 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .go.alt{background:var(--ink);color:var(--bg);font-size:19px;cursor:pointer}
 .share .link{align-self:center}
 .lens{display:block;text-align:center;text-decoration:none;border:2px solid var(--ink);color:var(--ink);border-radius:12px;padding:14px;font:600 16px var(--body)}
-.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:3/4;max-width:100%;max-height:70vh}
+.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:3/4;max-width:100%;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);scroll-margin:12px}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
 .cam .aim{transition:top .2s,height .2s;position:absolute;left:8%;right:8%;top:24%;height:34%;border:3px solid var(--accent);border-radius:8px}
 .cam .camclose{position:absolute;right:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
@@ -246,7 +246,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 3.3 · by Miszti</span></footer>
+  <footer><span class="ver">v. 3.5 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -609,6 +609,7 @@ $("btnLive").addEventListener("click", async () => {
   $("preview").hidden = true;
   try{
     $("camBox").hidden = false; $("btnLive").hidden = true;
+    centerCam();
     liveReader = new ZXing.BrowserMultiFormatReader();
     await liveReader.decodeFromConstraints({video:{facingMode:"environment", width:{ideal:1920}, height:{ideal:1080}, focusMode:"continuous"}}, $("video"), (res) => {
       if(res && liveReader && !frozen){
@@ -625,6 +626,13 @@ $("btnLive").addEventListener("click", async () => {
     setStatus("Nie udało się włączyć aparatu. Sprawdź, czy strona ma zgodę na aparat, albo wpisz EAN, nazwę lub model ręcznie.", true);
   }
 });
+/* Podgląd aparatu zawsze w całości na środku ekranu */
+function centerCam(){
+  const go = () => { try{ $("camBox").scrollIntoView({ behavior: "smooth", block: "center" }); }catch(e){ $("camBox").scrollIntoView(); } };
+  requestAnimationFrame(() => requestAnimationFrame(go));
+  setTimeout(go, 450);
+}
+$("video").addEventListener("loadedmetadata", () => { if(!$("camBox").hidden) centerCam(); });
 /* Położenie ramki we współrzędnych obrazu z aparatu (podgląd jest przycięty do okna) */
 function aimFractions(){
   const v = $("video"), box = $("camBox").getBoundingClientRect(), aim = document.querySelector(".cam .aim").getBoundingClientRect();
@@ -819,18 +827,23 @@ async function readByLines(img, x, y, w, h){
 }
 async function readRegion(x, y, w, h, zoom){
   if(!ocrWorker) setStatus("Przygotowuję rozpoznawanie tekstu (tylko za pierwszym razem)…");
-  try{
-    const byLines = linesFrom({ lines: await readByLines(frozen.img, x, y, w, h) });
-    if(byLines.length) return mergeRuns([byLines]);
-  }catch(e){}
+  // 1. Sprawdzony odczyt z wersji 2.9
   const psm = zoom ? (w / h > 3.2 ? 7 : 6) : (narrow ? 7 : 6);
   const runs = [];
   setStatus("Rozpoznaję napisy…");
   try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, false, zoom), psm)); }catch(e){}
-  const best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
+  let best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
   if(best < 70){
     setStatus("Sprawdzam jasny napis na ciemnym tle…");
     try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, true, zoom), psm)); }catch(e){}
+    best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
+  }
+  // 2. Odczyt linijka po linijce tylko jako dodatkowa próba, gdy pierwszy wynik jest słaby
+  if(best < 75){
+    try{
+      const byLines = linesFrom({ lines: await readByLines(frozen.img, x, y, w, h) });
+      if(byLines.length) runs.push(byLines);
+    }catch(e){}
   }
   return mergeRuns(runs);
 }
