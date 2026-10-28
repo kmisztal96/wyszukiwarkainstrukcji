@@ -116,6 +116,8 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .cambar .ghost{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5)}
 .cambar button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 12px;font:700 15px var(--body)}
 .cambar button:disabled{opacity:.6}
+.below{width:100%;max-width:clamp(320px,92vw,620px);margin:clamp(12px,2.5vw,18px) auto 0;display:flex;flex-direction:column;gap:10px}
+@media (min-width:900px){.below{max-width:660px}}
 .install{display:flex;align-items:center;justify-content:center;gap:10px;background:transparent;color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:13px;font:600 16px var(--body);cursor:pointer}
 .install svg{width:22px;height:22px}
 .howto{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;display:flex;flex-direction:column;gap:6px}
@@ -225,6 +227,10 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
+  <footer><span class="ver">v. 2.5</span></footer>
+
+</div>
+<div class="below">
   <button class="install" id="btnInstall" type="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/><path d="M10 18.5h4"/></svg>
     Dodaj skrót na ekran telefonu
@@ -240,9 +246,8 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
       <ol><li>Dotknij <b>⋮</b> w prawym górnym rogu przeglądarki.</li><li>Wybierz <b>Dodaj do ekranu głównego</b> albo <b>Zainstaluj aplikację</b>.</li><li>Potwierdź <b>Dodaj</b>.</li></ol>
     </div>
     <button class="link" id="howClose" type="button">Zamknij</button>
-  </div>
-
-  <footer><span class="ver">v. 2.2</span></footer>
+  
+</div>
 </div>
 </div>
 
@@ -320,12 +325,17 @@ function showPreview(file){
 /* Odczyt nazwy i modelu z pudełka */
 function withTimeout(p, ms){ return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]); }
 function loadScript(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
-let ocrWorker = null;
-async function getWorker(){
-  if(ocrWorker) return ocrWorker;
+let ocrWorker = null, workerPromise = null;
+function getWorker(){
+  if(ocrWorker) return Promise.resolve(ocrWorker);
+  if(!workerPromise) workerPromise = createOcr().catch(e => { workerPromise = null; throw e; });
+  return workerPromise;
+}
+function prewarmOcr(){ const go = () => getWorker().catch(() => {}); ("requestIdleCallback" in window) ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 800); }
+async function createOcr(){
   if(!window.Tesseract) await withTimeout(loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"), 15000);
-  setStatus("Pobieram moduł rozpoznawania tekstu (tylko za pierwszym razem)…");
-  ocrWorker = await withTimeout(Tesseract.createWorker("eng+pol", 1), 60000);
+  ocrWorker = await withTimeout(Tesseract.createWorker("eng", 1), 60000);
+  await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
   return ocrWorker;
 }
 /* Oznaczenia modeli: O→0 i I/l→1 obok cyfr (AX3OOOT → AX3000T, S2l → S21) */
@@ -350,8 +360,7 @@ function fixModel(text){
 }
 /* Skala szarości, rozciągnięcie kontrastu i powiększenie: Tesseract czyta wtedy znacznie lepiej */
 function prepCanvas(src, sx, sy, sw, sh, invert){
-  const target = Math.min(2000, Math.max(1200, sw * 2));
-  const k = target / sw;
+  const k = Math.max(0.35, Math.min(2.5, 1100 / sw, 900000 / (sw * sh)));
   const c = document.createElement("canvas");
   c.width = Math.round(sw * k); c.height = Math.round(sh * k);
   const g = c.getContext("2d");
@@ -432,8 +441,9 @@ function linesFrom(data){
     .slice(0, 8);
 }
 async function ocrCanvas(canvas, psm){
+  if(!ocrWorker) setStatus("Przygotowuję rozpoznawanie tekstu (tylko za pierwszym razem)…");
   const w = await getWorker();
-  await w.setParameters({ tessedit_pageseg_mode: String(psm), preserve_interword_spaces: "1", user_defined_dpi: "300" });
+  if(w._psm !== psm){ await w.setParameters({ tessedit_pageseg_mode: String(psm) }); w._psm = psm; }
   const r = await withTimeout(w.recognize(canvas, {}, { text: true, blocks: true }), 30000);
   return linesFrom(r.data);
 }
@@ -556,6 +566,7 @@ $("btnLive").addEventListener("click", async () => {
       }
     });
     setTimeout(setupTorch, 600);
+    prewarmOcr();
     setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku.");
   }catch(err){
     stopLive();
@@ -575,7 +586,7 @@ async function takeStill(){
   const t = videoTrack();
   if(!t || !("ImageCapture" in window)) return null;
   try{
-    const blob = await withTimeout(new ImageCapture(t).takePhoto(), 5000);
+    const blob = await withTimeout(new ImageCapture(t).takePhoto(), 2500);
     const im = await photoToImage(blob);
     const v = $("video");
     if((im.naturalWidth > im.naturalHeight) !== (v.videoWidth > v.videoHeight)) return null;
@@ -607,25 +618,19 @@ $("camText").addEventListener("click", async () => {
     const frames = [frame()];
     setStatus("Robię ostre zdjęcie…");
     const still = await takeStill();
-    if(!still){ await wait(180); frames.push(frame()); }
     const src = still || frames[0];
     const sw = still ? still.naturalWidth : vw, sh = still ? still.naturalHeight : vh;
 
     if(!ok){
       const psm = narrow ? 7 : 6;
-      const crops = [];
-      if(still) crops.push(prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh));
-      frames.forEach(fr => crops.push(prepCanvas(fr, f.x * vw, f.y * vh, f.w * vw, f.h * vh)));
+      const crop = (inv) => still ? prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh, inv) : prepCanvas(frames[0], f.x * vw, f.y * vh, f.w * vw, f.h * vh, inv);
       const runs = [];
-      for(let i = 0; i < crops.length; i++){
-        setStatus("Rozpoznaję napisy… (ujęcie " + (i + 1) + " z " + (crops.length + 1) + ")");
-        try{ runs.push(await ocrCanvas(crops[i], psm)); }catch(e){}
-      }
+      setStatus("Rozpoznaję napisy…");
+      try{ runs.push(await ocrCanvas(crop(false), psm)); }catch(e){}
       const best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
-      if(best < 85){
+      if(best < 70){
         setStatus("Sprawdzam jasny napis na ciemnym tle…");
-        const inv = still ? prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh, true) : prepCanvas(frames[0], f.x * vw, f.y * vh, f.w * vw, f.h * vh, true);
-        try{ runs.push(await ocrCanvas(inv, psm)); }catch(e){}
+        try{ runs.push(await ocrCanvas(crop(true), psm)); }catch(e){}
       }
       ok = applyLines(mergeRuns(runs));
       if(!ok) setStatus("Nie udało się odczytać nazwy ani modelu. Podejdź bliżej, włącz latarkę albo przełącz ramkę na jedną linijkę i ustaw w niej sam model.", true);
