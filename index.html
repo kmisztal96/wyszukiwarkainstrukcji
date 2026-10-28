@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1c211d">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Skaner Resetu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: jedna kolumna jak terminal kontrolera — pole frazy u góry, trzy duże źródła wejścia, jeden przycisk wyszukiwania */
+:root{
+  --bg:#eef0ec; --panel:#ffffff; --ink:#1c211d; --muted:#5d665f; --line:#d3d8d1;
+  --accent:#f2b705; --accent-ink:#1c211d; --ok:#2f7d4a; --warn:#b4511c;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
+  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
+  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;flex:none;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.mark svg{width:24px;height:24px}
+h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.sub{margin:2px 0 0;color:var(--muted);font-size:14px}
+.label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.phrase{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.prefix{font-size:15px;color:var(--muted)}
+.prefix b{color:var(--ink);font-weight:600}
+#q{width:100%;font:500 20px/1.3 var(--mono);color:var(--ink);background:var(--bg);border:2px solid var(--line);
+  border-radius:10px;padding:12px;min-height:54px}
+#q:focus{outline:none;border-color:var(--accent)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:24px}
+.chip{font-size:13px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid currentColor}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.info{color:var(--muted)}
+.sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.alt{display:flex;flex-direction:column;gap:8px}
+.scan{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--ink);color:var(--bg);border:0;border-radius:12px;padding:20px;font:700 22px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.scan svg{width:30px;height:30px}
+.src{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;text-align:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 8px;min-height:56px;
+  color:var(--ink);font:600 14px/1.2 var(--body);cursor:pointer}
+.src svg{width:28px;height:28px;stroke:var(--ink)}
+.src:active{transform:scale(.98)}
+.src:focus-visible,.go:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.go{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;background:var(--accent);color:var(--accent-ink);
+  font:700 22px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;border-radius:12px;padding:18px;border:0}
+.go[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
+.mode button{border:0;border-radius:9px;padding:9px 6px;background:transparent;color:var(--muted);font:600 15px/1.2 var(--body);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.mode button small{font-weight:500;font-size:12px}
+.mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.status{font-size:14px;color:var(--muted);min-height:20px}
+.status.err{color:var(--warn)}
+.share{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.go.alt{background:var(--ink);color:var(--bg);font-size:19px;cursor:pointer}
+.share .link{align-self:center}
+.lens{display:block;text-align:center;text-decoration:none;border:2px solid var(--ink);color:var(--ink);border-radius:12px;padding:14px;font:600 16px var(--body)}
+.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.cam .aim{position:absolute;left:8%;right:8%;top:28%;height:34%;border:3px solid var(--accent);border-radius:8px}
+.cam .camclose{position:absolute;right:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
+.cambar{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px}
+.cambar button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 12px;font:700 15px var(--body)}
+.cambar button:disabled{opacity:.6}
+.chipsbox{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.pick{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font:500 15px var(--mono);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.pick.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#preview{max-height:180px;border-radius:10px;border:1px solid var(--line);align-self:flex-start}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hist ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.hist button{width:100%;text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  color:var(--ink);font:500 15px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.link{background:none;border:0;color:var(--muted);font:500 13px var(--body);text-decoration:underline;padding:4px}
+footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.ver{font:500 11px var(--mono);opacity:.7}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1c211d" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg></div>
+    <div><h1>Wyszukiwarka instrukcji</h1><p class="sub">Instrukcja ustawień fabrycznych w jednym kroku</p></div>
+  </header>
+
+  <section class="phrase">
+    <span class="label">Fraza wyszukiwania</span>
+    <div class="prefix"><b>Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych produktu:</b></div>
+    <input id="q" type="text" inputmode="text" autocomplete="off" placeholder="EAN, nazwa lub model">
+    <div class="meta" id="meta"></div>
+    <div class="chipsbox" id="chipsBox" hidden>
+      <span class="label">Odczytane napisy</span>
+      <div class="chips" id="chips"></div>
+    </div>
+    <img id="preview" alt="Zrobione zdjęcie" hidden>
+  </section>
+
+  <div class="cam" id="camBox" hidden>
+    <video id="video" playsinline muted></video>
+    <div class="aim" aria-hidden="true"></div>
+    <button id="camClose" class="camclose" type="button">Zamknij</button>
+    <div class="cambar">
+      <span>Kod EAN łapie się sam. Napis ustaw w ramce.</span>
+      <button id="camText" type="button">Odczytaj napis z ramki</button>
+    </div>
+  </div>
+
+  <button class="scan" id="btnLive" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
+    Włącz skaner
+  </button>
+
+
+  <div class="mode" role="group" aria-label="Rodzaj wyników">
+    <button id="modeAi" type="button" aria-pressed="true">Tryb AI<small>gotowa instrukcja</small></button>
+    <button id="modeWeb" type="button" aria-pressed="false">Zwykłe wyniki<small>lista stron</small></button>
+  </div>
+
+  <div class="status" id="status" role="status">Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę.</div>
+
+  <a class="go" id="go" href="#" target="_blank" rel="noopener">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <span id="goLabel">Zapytaj Gemini</span>
+  </a>
+
+  <section class="hist" id="histBox" hidden>
+    <div class="row"><span class="label">Ostatnie wyszukiwania</span><button class="link" id="histClear" type="button">Wyczyść</button></div>
+    <ul id="hist"></ul>
+  </section>
+
+  <footer>Obraz z aparatu zostaje na telefonie, do Google trafia tylko tekst.<span class="ver">v. 0.2</span></footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+const PREFIX = "Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych produktu: ";
+const $ = id => document.getElementById(id);
+const q = $("q"), go = $("go"), statusEl = $("status"), meta = $("meta");
+
+function setStatus(t, err){ statusEl.textContent = t; statusEl.classList.toggle("err", !!err); }
+
+function eanCheck(d){
+  if(!/^\d+$/.test(d) || ![8,12,13,14].includes(d.length)) return null;
+  const digits = d.split("").map(Number), check = digits.pop();
+  let sum = 0; digits.reverse().forEach((n,i)=> sum += n * (i % 2 === 0 ? 3 : 1));
+  return (10 - sum % 10) % 10 === check;
+}
+
+function update(){
+  const v = q.value.trim();
+  meta.innerHTML = "";
+  if(!v){ go.setAttribute("aria-disabled","true"); go.href = "#"; return; }
+  go.removeAttribute("aria-disabled");
+  go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(PREFIX + v);
+  const plain = v.replace(/\s/g,"");
+  const ok = eanCheck(plain);
+  const chip = (cls, t) => { const s = document.createElement("span"); s.className = "chip " + cls; s.textContent = t; meta.appendChild(s); };
+  if(ok === true) chip("ok", (plain.length===13?"EAN-13":plain.length===8?"EAN-8":plain.length===12?"UPC-A":"GTIN-14") + " · suma kontrolna OK");
+  else if(ok === false) chip("warn", "Suma kontrolna się nie zgadza, sprawdź cyfry");
+  else chip("info", "Nazwa / model");
+}
+let aiMode = true;
+try{ aiMode = localStorage.getItem("reset-skaner-mode") !== "web"; }catch(e){}
+function setMode(ai){
+  aiMode = ai;
+  $("modeAi").setAttribute("aria-pressed", ai); $("modeWeb").setAttribute("aria-pressed", !ai);
+  $("goLabel").textContent = ai ? "Zapytaj Gemini" : "Szukaj w Google";
+  try{ localStorage.setItem("reset-skaner-mode", ai ? "ai" : "web"); }catch(e){}
+  update();
+}
+$("modeAi").onclick = () => setMode(true);
+$("modeWeb").onclick = () => setMode(false);
+q.addEventListener("input", () => { update(); });
+q.addEventListener("keydown", e => { if(e.key === "Enter" && q.value.trim()){ go.click(); } });
+
+/* Historia */
+const HKEY = "reset-skaner-hist";
+function loadHist(){ try{ return JSON.parse(localStorage.getItem(HKEY)) || []; }catch(e){ return []; } }
+function saveHist(h){ try{ localStorage.setItem(HKEY, JSON.stringify(h)); }catch(e){} }
+function renderHist(){
+  const h = loadHist(), ul = $("hist"); ul.innerHTML = "";
+  $("histBox").hidden = !h.length;
+  h.forEach(v => { const li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button"; b.textContent = v; b.onclick = () => { q.value = v; update(); setStatus("Wczytano z historii. Dotknij żółty przycisk."); };
+    li.appendChild(b); ul.appendChild(li); });
+}
+go.addEventListener("click", () => {
+  const v = q.value.trim(); if(!v) return;
+  const h = [v, ...loadHist().filter(x => x !== v)].slice(0, 8); saveHist(h); renderHist();
+});
+$("histClear").onclick = () => { saveHist([]); renderHist(); };
+
+/* Dekodowanie kodu ze zdjęcia */
+const FORMATS = ["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"];
+async function decodeImage(file){
+  const url = URL.createObjectURL(file);
+  try{
+    if("BarcodeDetector" in window){
+      try{
+        const det = new BarcodeDetector({formats: FORMATS});
+        const bmp = await createImageBitmap(file);
+        const res = await det.detect(bmp);
+        if(res.length) return res[0].rawValue;
+      }catch(e){}
+    }
+    if(window.ZXing){
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const r = await reader.decodeFromImageUrl(url);
+      return r.getText();
+    }
+    throw new Error("brak dekodera");
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function showPreview(file){
+  const p = $("preview"); p.src = URL.createObjectURL(file); p.hidden = false;
+}
+
+
+/* Zdjęcie pudełka: odczyt kodu albo nazwy i modelu jako tekst */
+const samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+function withTimeout(p, ms){ return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]); }
+async function readBoxWithClaude(file){
+  const sample = await samplePromise;
+  if(!sample) return {ok:false, why:"none"};
+  const lim = await sample.limits().catch(() => null);
+  if(!lim || !lim.images) return {ok:false, why:"none"};
+  setStatus("Odczytuję nazwę i model z pudełka…");
+  try{
+    const r = await sample.json(
+      "Na zdjęciu jest opakowanie produktu (elektronika, AGD, narzędzie itp.). Odczytaj z niego producenta, nazwę produktu i dokładne oznaczenie modelu. " +
+      "Jeśli widać kod EAN zapisany cyframi, podaj go też. Nie zgaduj: pole, którego nie widać, zostaw puste. " +
+      'Odpowiedz tylko JSON: {"marka":"","nazwa":"","model":"","ean":""}. Przykład: {"marka":"Xiaomi","nazwa":"Router","model":"AX3000T","ean":""}',
+      { images: file, modelTier: "quick" });
+    const parts = [r && r.marka, r && r.nazwa, r && r.model].map(s => String(s || "").trim()).filter(Boolean);
+    const uniq = parts.filter((p, i) => !parts.slice(0, i).some(x => x.toLowerCase().includes(p.toLowerCase())));
+    if(uniq.length) return {ok:true, text:uniq.join(" ")};
+    const ean = String((r && r.ean) || "").replace(/\D/g, "");
+    return ean ? {ok:true, text:ean} : {ok:false, why:"empty"};
+  }catch(e){
+    return {ok:false, why: e && e.code || "error"};
+  }
+}
+function loadScript(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+let ocrWorker = null;
+async function getWorker(){
+  if(ocrWorker) return ocrWorker;
+  if(!window.Tesseract) await withTimeout(loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"), 15000);
+  setStatus("Pobieram moduł rozpoznawania tekstu (tylko za pierwszym razem)…");
+  ocrWorker = await withTimeout(Tesseract.createWorker("eng+pol", 1, { logger: m => {
+    if(m.status === "recognizing text") setStatus("Rozpoznaję napisy… " + Math.round(m.progress * 100) + "%");
+  }}), 60000);
+  return ocrWorker;
+}
+/* Skala szarości, rozciągnięcie kontrastu i powiększenie: Tesseract czyta wtedy znacznie lepiej */
+function prepCanvas(src, sx, sy, sw, sh){
+  const target = Math.min(2000, Math.max(1200, sw * 2));
+  const k = target / sw;
+  const c = document.createElement("canvas");
+  c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const g = c.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  g.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data;
+  let lo = 255, hi = 0;
+  for(let i = 0; i < d.length; i += 4){
+    const y = (d[i] * 299 + d[i+1] * 587 + d[i+2] * 114) / 1000;
+    d[i] = y; if(y < lo) lo = y; if(y > hi) hi = y;
+  }
+  const span = Math.max(1, hi - lo);
+  for(let i = 0; i < d.length; i += 4){
+    const v = Math.max(0, Math.min(255, (d[i] - lo) * 255 / span));
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+function cleanLine(t){
+  const words = t.replace(/[|_~`'"“”‘’«»©®™°•·*#^=<>\[\]{}()\\]/g, " ").split(/\s+/)
+    .map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+    .filter(w => (w.length >= 2 && /[\p{L}\p{N}]/u.test(w)) || /^\d$/.test(w))
+    .filter(w => (w.match(/[\p{L}\p{N}]/gu) || []).length / w.length >= 0.7);
+  return words.join(" ");
+}
+function linesFrom(data){
+  let lines = data.lines || [];
+  if(!lines.length && data.blocks) data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(l => lines.push(l))));
+  return lines.map(l => ({ text: cleanLine(l.text || ""), conf: l.confidence || 0 }))
+    .filter(l => l.text.length >= 3 && l.conf >= 55)
+    .sort((a, b) => b.conf - a.conf)
+    .filter((l, i, arr) => arr.findIndex(x => x.text.toLowerCase() === l.text.toLowerCase()) === i)
+    .slice(0, 8);
+}
+async function readBoxLocally(canvas, psm){
+  const w = await getWorker();
+  await w.setParameters({ tessedit_pageseg_mode: String(psm), preserve_interword_spaces: "1" });
+  setStatus("Rozpoznaję napisy…");
+  const r = await withTimeout(w.recognize(canvas, {}, { text: true, blocks: true }), 45000);
+  return linesFrom(r.data);
+}
+function showChips(lines){
+  const box = $("chips"), wrap = $("chipsBox");
+  box.innerHTML = "";
+  lines.forEach(l => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "pick"; b.textContent = l.text;
+    b.onclick = () => {
+      const cur = q.value.trim();
+      if(cur.toLowerCase().includes(l.text.toLowerCase())) q.value = cur.replace(new RegExp(l.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").replace(/\s+/g, " ").trim();
+      else q.value = (cur ? cur + " " : "") + l.text;
+      b.classList.toggle("on"); update();
+    };
+    box.appendChild(b);
+  });
+  wrap.hidden = !lines.length;
+}
+function photoToCanvas(blob){
+  return new Promise((ok, no) => {
+    const im = new Image(), u = URL.createObjectURL(blob);
+    im.onload = () => { URL.revokeObjectURL(u); ok(im); };
+    im.onerror = e => { URL.revokeObjectURL(u); no(e); };
+    im.src = u;
+  });
+}
+async function readBox(blob, tryCode, canvas){
+  showChips([]);
+  if(tryCode){
+    setStatus("Szukam kodu EAN na pudełku…");
+    try{
+      const code = await withTimeout(decodeImage(blob), 8000);
+      q.value = code; update(); setStatus("Na pudełku znalazłem kod EAN. Dotknij żółty przycisk."); return true;
+    }catch(err){}
+  }
+  const ai = await readBoxWithClaude(blob);
+  if(ai.ok){
+    q.value = ai.text; update();
+    setStatus("Odczytałem produkt z pudełka. Sprawdź nazwę i dotknij żółty przycisk."); return true;
+  }
+  if(ai.why === "none"){
+    try{
+      const lines = await readBoxLocally(canvas || await (async () => { const im = await photoToCanvas(blob); return prepCanvas(im, 0, 0, im.naturalWidth, im.naturalHeight); })(), canvas ? 6 : 11);
+      if(lines.length){
+        const best = lines.find(l => /\p{L}/u.test(l.text) && /\d/.test(l.text)) || lines[0];
+        q.value = best.text; update(); showChips(lines);
+        $("chips").firstChild && [...$("chips").children].forEach(c => c.classList.toggle("on", c.textContent === best.text));
+        setStatus("Wpisałem najlepiej odczytany napis. Dotknij innych napisów poniżej, żeby je dodać lub usunąć.");
+        return true;
+      }
+    }catch(err){}
+  }
+  const msg = {
+    not_granted: "Bez zgody na odczyt nie odczytam napisów. Wpisz nazwę i model ręcznie albo otwórz stronę ponownie i zatwierdź zgodę.",
+    rate_limited: "Zbyt wiele odczytów naraz. Spróbuj za chwilę albo wpisz nazwę ręcznie.",
+    image_rejected: "Tego obrazu nie da się odczytać. Spróbuj jeszcze raz."
+  }[ai.why] || "Nie udało się odczytać nazwy ani modelu. Podejdź bliżej, tak żeby napis był ostry i wypełniał ramkę, albo wpisz go ręcznie.";
+  setStatus(msg, true);
+  return false;
+}
+
+/* Skanowanie na żywo */
+let liveReader = null;
+function stopLive(){
+  if(liveReader){ try{ liveReader.reset(); }catch(e){} liveReader = null; }
+  const v = $("video"); if(v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+  $("camBox").hidden = true; $("btnLive").hidden = false;
+}
+$("camClose").onclick = stopLive;
+$("btnLive").addEventListener("click", async () => {
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.ZXing){
+    setStatus("Ta przeglądarka nie daje dostępu do aparatu. Wpisz EAN, nazwę albo model ręcznie.", true); return;
+  }
+  setStatus("Uruchamiam aparat…");
+  $("preview").hidden = true;
+  try{
+    $("camBox").hidden = false; $("btnLive").hidden = true;
+    liveReader = new ZXing.BrowserMultiFormatReader();
+    await liveReader.decodeFromConstraints({video:{facingMode:"environment", width:{ideal:1920}, height:{ideal:1080}}}, $("video"), (res) => {
+      if(res && liveReader){
+        q.value = res.getText(); update(); stopLive();
+        if(navigator.vibrate) navigator.vibrate(80);
+        setStatus("Kod zeskanowany. Dotknij żółty przycisk.");
+      }
+    });
+    setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku.");
+  }catch(err){
+    stopLive();
+    setStatus("Nie udało się włączyć aparatu. Sprawdź, czy strona ma zgodę na aparat, albo wpisz EAN, nazwę lub model ręcznie.", true);
+  }
+});
+$("camText").addEventListener("click", async () => {
+  const v = $("video");
+  if(!v.videoWidth) return;
+  const box = $("camBox").getBoundingClientRect(), aim = document.querySelector(".cam .aim").getBoundingClientRect();
+  const sc = Math.max(box.width / v.videoWidth, box.height / v.videoHeight);
+  const ox = (box.width - v.videoWidth * sc) / 2, oy = (box.height - v.videoHeight * sc) / 2;
+  const sx = Math.max(0, (aim.left - box.left - ox) / sc), sy = Math.max(0, (aim.top - box.top - oy) / sc);
+  const sw = Math.min(v.videoWidth - sx, aim.width / sc), sh = Math.min(v.videoHeight - sy, aim.height / sc);
+  const canvas = prepCanvas(v, sx, sy, sw, sh);
+  const full = document.createElement("canvas"); full.width = sw; full.height = sh;
+  full.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, sw, sh);
+  const blob = await new Promise(r => full.toBlob(r, "image/jpeg", 0.92));
+  if(!blob) return;
+  const btn = $("camText"); btn.disabled = true; btn.textContent = "Odczytuję…";
+  if(navigator.vibrate) navigator.vibrate(30);
+  const ok = await readBox(blob, false, canvas);
+  btn.disabled = false; btn.textContent = "Odczytaj napis z ramki";
+  if(ok){ stopLive(); if(navigator.vibrate) navigator.vibrate(80); }
+});
+
+setMode(aiMode); renderHist();
+</script>
+</body>
+</html>
