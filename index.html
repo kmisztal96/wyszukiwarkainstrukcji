@@ -54,6 +54,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 header{display:flex;align-items:center;gap:12px}
 .htext{min-width:0;flex:1}
 .detective{width:64px;height:64px;flex:none;overflow:visible}
+.lensarm{transform-box:view-box;transform-origin:63px 66px;animation:lookup 4.8s ease-in-out infinite}
+@keyframes lookup{
+  0%,12%{transform:translate(5px,15px) rotate(14deg)}
+  30%,72%{transform:translate(0,0) rotate(0)}
+  80%{transform:translate(-.6px,-.4px) rotate(-2deg)}
+  88%,100%{transform:translate(5px,15px) rotate(14deg)}
+}
+@media (prefers-reduced-motion: reduce){.lensarm{animation:none}}
 .aibadge{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
 .aibadge .spark{animation:twinkle 2.4s ease-in-out infinite}
 @keyframes twinkle{0%,100%{opacity:1}50%{opacity:.25}}
@@ -174,6 +182,9 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
       <path d="M32.5 11c2 2.4 3.8 2.4 5.5 0 1.7 2.4 3.5 2.4 5.5 0" stroke="var(--hat-hi)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
       <path d="M24.1 20.8c4 1 9 1.6 13.9 1.6s9.9-.6 13.9-1.6l.2 3.1c-4 1-9 1.7-14.1 1.7s-10.1-.7-14.1-1.7z" fill="var(--accent)"/>
       <path d="M16.5 26.4c6-2.6 13.5-3.7 21.5-3.7" stroke="var(--hat-hi)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <ellipse class="eyeR" cx="46" cy="35.2" rx="1.5" ry="1.7" fill="var(--feat)"/>
+      <path d="M43 31.2q3-2 6-.2" stroke="var(--feat)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <g class="lensarm">
       <line x1="52.4" y1="41.6" x2="62.5" y2="51.8" stroke="var(--hat)" stroke-width="3.6" stroke-linecap="round"/>
       <circle cx="46" cy="35" r="9" fill="var(--lens)" stroke="var(--accent)" stroke-width="3"/>
       <path d="M41 29.6q5-3.1 10-.2" stroke="var(--feat)" stroke-width="2" fill="none" stroke-linecap="round"/>
@@ -186,6 +197,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
       <ellipse cx="60.7" cy="48.3" rx="4.3" ry="3.6" transform="rotate(-40 60.7 48.3)" fill="var(--skin)"/>
       <path d="M57.6 47.2q1.5-1 2.4.6M59 45.6q1.5-1 2.4.6M60.6 44.2q1.4-.8 2.2.6" stroke="var(--skin-sh)" stroke-width="1" fill="none" stroke-linecap="round"/>
       <path d="M56.8 49.6q1.6 1.2 3.4.2" stroke="var(--skin-sh)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      </g>
     </svg>
   </header>
 
@@ -226,7 +238,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <button id="modeWeb" type="button" aria-pressed="false">Zwykłe wyniki<small>lista stron</small></button>
   </div>
 
-  <div class="status" id="status" role="status"><span class="hint"><span class="qmark" aria-hidden="true"><span>?</span></span><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę lub zeskanować kod z pudełka za pomocą skanera ręcznego.</strong></span></div>
+  <div class="status" id="status" role="status"><span class="hint"><span class="qmark" aria-hidden="true"><span>?</span></span><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę i model produktu lub zeskanować kod EAN z pudełka za pomocą skanera ręcznego.</strong></span></div>
 
   <a class="go" id="go" href="#" target="_blank" rel="noopener">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -234,7 +246,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 2.7</span></footer>
+  <footer><span class="ver">v. 3.3 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -278,7 +290,11 @@ function update(){
   meta.innerHTML = "";
   if(!v){ go.setAttribute("aria-disabled","true"); go.href = "#"; return; }
   go.removeAttribute("aria-disabled");
-  const phrase = aiMode ? PREFIX + v : v + " instrukcja resetu lub ustawień fabrycznych";
+  const digits = v.replace(/\s/g, "");
+  const isEan = /^\d+$/.test(digits) && [8, 12, 13, 14].includes(digits.length);
+  const phrase = aiMode ? PREFIX + v
+    : isEan ? "Instrukcja resetu lub ustawień fabrycznych dla produktu o kodzie EAN: " + digits
+    : v + " instrukcja resetu lub ustawień fabrycznych";
   go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(phrase);
   const plain = v.replace(/\s/g,"");
   const ok = eanCheck(plain);
@@ -670,7 +686,143 @@ function addLines(newLines, zoomed){
   setStatus("Dodałem „" + best.text + "”. Zaznacz kolejny napis albo dotknij „Gotowe”.");
   return true;
 }
+/* Odczyt linijka po linijce: prostowanie, podział na wiersze, dwa sposoby przygotowania obrazu */
+function grayOf(c){
+  const W = c.width, H = c.height, d = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, W, H).data;
+  const g = new Float32Array(W * H);
+  for(let i = 0, j = 0; j < W * H; i += 4, j++) g[j] = (d[i] * 299 + d[i+1] * 587 + d[i+2] * 114) / 1000;
+  return g;
+}
+function otsu(g){
+  const hist = new Float64Array(256); for(let j = 0; j < g.length; j++) hist[g[j] | 0]++;
+  let sum = 0; for(let v = 0; v < 256; v++) sum += v * hist[v];
+  let sB = 0, wB = 0, best = 0, t = 127;
+  for(let v = 0; v < 256; v++){
+    wB += hist[v]; if(!wB) continue; const wF = g.length - wB; if(!wF) break;
+    sB += v * hist[v]; const mB = sB / wB, mF = (sum - sB) / wF, between = wB * wF * (mB - mF) * (mB - mF);
+    if(between > best){ best = between; t = v; }
+  }
+  return t;
+}
+/* Kąt pochylenia: przy właściwym kącie wiersze tekstu dają najwyraźniejsze „pasy” */
+function estimateSkew(g, W, H, dark){
+  const t = otsu(g), pts = [], step = Math.max(1, Math.round(Math.max(W, H) / 320));
+  for(let y = 0; y < H; y += step) for(let x = 0; x < W; x += step){ const v = g[y * W + x]; if(dark ? v <= t : v > t) pts.push(x, y); }
+  if(pts.length < 40) return 0;
+  let bestA = 0, bestV = -1;
+  for(let a = -8; a <= 8; a += 0.5){
+    const r = a * Math.PI / 180, sn = Math.sin(r), cs = Math.cos(r), hist = new Map();
+    for(let i = 0; i < pts.length; i += 2){ const row = Math.round((-pts[i] * sn + pts[i+1] * cs) / step); hist.set(row, (hist.get(row) || 0) + 1); }
+    let variance = 0; hist.forEach(v => { variance += v * v; });
+    if(variance > bestV){ bestV = variance; bestA = a; }
+  }
+  return Math.abs(bestA) < 1 ? 0 : bestA;
+}
+function rotated(c, deg, bg){
+  if(!deg) return c;
+  const r = deg * Math.PI / 180, W = c.width, H = c.height;
+  const nW = Math.ceil(Math.abs(W * Math.cos(r)) + Math.abs(H * Math.sin(r))), nH = Math.ceil(Math.abs(W * Math.sin(r)) + Math.abs(H * Math.cos(r)));
+  const o = document.createElement("canvas"); o.width = nW; o.height = nH;
+  const g = o.getContext("2d"); g.fillStyle = bg; g.fillRect(0, 0, nW, nH);
+  g.translate(nW / 2, nH / 2); g.rotate(-r); g.drawImage(c, -W / 2, -H / 2);
+  return o;
+}
+/* Pasy wierszy z poziomego profilu „atramentu” */
+function splitLines(g, W, H, dark){
+  const t = otsu(g), ink = new Float32Array(H);
+  for(let y = 0; y < H; y++){ let n = 0; for(let x = 0; x < W; x++){ const v = g[y * W + x]; if(dark ? v <= t : v > t) n++; } ink[y] = n; }
+  const thr = Math.max(2, W * 0.015), bands = [];
+  let start = -1;
+  for(let y = 0; y <= H; y++){
+    const on = y < H && ink[y] > thr;
+    if(on && start < 0) start = y;
+    if(!on && start >= 0){ bands.push([start, y]); start = -1; }
+  }
+  if(!bands.length) return [];
+  const hs = bands.map(b => b[1] - b[0]).sort((a, b) => a - b), med = hs[hs.length >> 1];
+  const merged = [];
+  bands.forEach(b => {
+    const last = merged[merged.length - 1];
+    if(last && b[0] - last[1] < Math.max(2, med * 0.3)) last[1] = b[1]; else merged.push(b.slice());
+  });
+  return merged.filter(b => b[1] - b[0] >= Math.max(6, med * 0.35)).slice(0, 6);
+}
+/* Wariant A: wyostrzenie + kontrast; wariant B: progowanie lokalne (odblaski, cienie) */
+function lineVariant(src, y0, y1, mode, dark){
+  const h = y1 - y0, k = Math.max(0.5, Math.min(4, 72 / h)), pad = Math.round(14);
+  const W = Math.round(src.width * k) + pad * 2, H = Math.round(h * k) + pad * 2;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.imageSmoothingQuality = "high";
+  g.drawImage(src, 0, y0, src.width, h, pad, pad, W - pad * 2, H - pad * 2);
+  const img = g.getImageData(0, 0, W, H), d = img.data, n = W * H, y = new Float32Array(n);
+  for(let i = 0, j = 0; j < n; i += 4, j++) y[j] = (d[i] * 299 + d[i+1] * 587 + d[i+2] * 114) / 1000;
+  // obszar marginesu wypełniamy jasnym/ciemnym tłem odpowiednim dla napisu
+  const bgv = dark ? 255 : 0;
+  for(let r = 0; r < H; r++) for(let col = 0; col < W; col++) if(r < pad || r >= H - pad || col < pad || col >= W - pad) y[r * W + col] = bgv;
+  const out = new Uint8ClampedArray(n);
+  if(mode === "A"){
+    let lo = 255, hi = 0;
+    for(let j = 0; j < n; j++){ if(y[j] < lo) lo = y[j]; if(y[j] > hi) hi = y[j]; }
+    const span = Math.max(1, hi - lo);
+    for(let j = 0; j < n; j++){ let v = (y[j] - lo) * 255 / span; if(!dark) v = 255 - v; out[j] = v; }
+  } else {
+    // Bradley: piksel ciemniejszy o 15% od średniej z okolicy = litera
+    const ii = new Float64Array((W + 1) * (H + 1));
+    for(let r = 1; r <= H; r++){ let rs = 0; for(let col = 1; col <= W; col++){ rs += y[(r - 1) * W + col - 1]; ii[r * (W + 1) + col] = ii[(r - 1) * (W + 1) + col] + rs; } }
+    const s2 = Math.max(8, Math.round(Math.min(W, H) * 0.6) >> 1);
+    for(let r = 0; r < H; r++) for(let col = 0; col < W; col++){
+      const x1 = Math.max(0, col - s2), x2 = Math.min(W, col + s2), y1 = Math.max(0, r - s2), y2 = Math.min(H, r + s2);
+      const cnt = (x2 - x1) * (y2 - y1), sum = ii[y2 * (W + 1) + x2] - ii[y1 * (W + 1) + x2] - ii[y2 * (W + 1) + x1] + ii[y1 * (W + 1) + x1];
+      const v = y[r * W + col] * cnt, isInk = dark ? v < sum * 0.85 : v > sum * 1.15;
+      out[r * W + col] = isInk ? 0 : 255;
+    }
+  }
+  for(let i = 0, j = 0; j < n; i += 4, j++){ d[i] = d[i+1] = d[i+2] = out[j]; d[i+3] = 255; }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+async function ocrLine(c){
+  const w = await getWorker();
+  if(w._psm !== 7){ await w.setParameters({ tessedit_pageseg_mode: "7" }); w._psm = 7; }
+  const r = await withTimeout(w.recognize(c, {}, { text: true }), 15000);
+  return { text: (r.data.text || "").replace(/\s+/g, " ").trim(), confidence: r.data.confidence || 0 };
+}
+async function readByLines(img, x, y, w, h){
+  const k = Math.max(0.5, Math.min(3, 1200 / w));
+  let c = document.createElement("canvas"); c.width = Math.max(8, Math.round(w * k)); c.height = Math.max(8, Math.round(h * k));
+  c.getContext("2d").drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  let g = grayOf(c);
+  // napis ciemny na jasnym czy jasny na ciemnym: tła jest zwykle więcej niż liter
+  const t0 = otsu(g); let darkCount = 0; for(let j = 0; j < g.length; j++) if(g[j] <= t0) darkCount++;
+  const dark = darkCount < g.length / 2;
+  const deg = estimateSkew(g, c.width, c.height, dark);
+  if(deg){ c = rotated(c, deg, dark ? "#ffffff" : "#000000"); g = grayOf(c); }
+  const bands = splitLines(g, c.width, c.height, dark);
+  if(!bands.length) return [];
+  const out = [];
+  for(let i = 0; i < bands.length; i++){
+    setStatus("Rozpoznaję napisy… linijka " + (i + 1) + " z " + bands.length);
+    const pad = Math.round((bands[i][1] - bands[i][0]) * 0.3);
+    const y0 = Math.max(0, bands[i][0] - pad), y1 = Math.min(c.height, bands[i][1] + pad);
+    let best = null;
+    for(const mode of ["A", "B"]){
+      try{
+        const r = await ocrLine(lineVariant(c, y0, y1, mode, dark));
+        if(r.text && (!best || r.confidence > best.confidence)) best = r;
+        if(best && best.confidence >= 80) break;
+      }catch(e){}
+    }
+    if(best) out.push(best);
+  }
+  return out;
+}
 async function readRegion(x, y, w, h, zoom){
+  if(!ocrWorker) setStatus("Przygotowuję rozpoznawanie tekstu (tylko za pierwszym razem)…");
+  try{
+    const byLines = linesFrom({ lines: await readByLines(frozen.img, x, y, w, h) });
+    if(byLines.length) return mergeRuns([byLines]);
+  }catch(e){}
   const psm = zoom ? (w / h > 3.2 ? 7 : 6) : (narrow ? 7 : 6);
   const runs = [];
   setStatus("Rozpoznaję napisy…");
