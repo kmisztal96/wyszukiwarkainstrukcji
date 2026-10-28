@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1c211d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Instrukcje">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -16,7 +23,7 @@ img{max-width:100%}
 <style>
 /* Layout: jedna kolumna jak terminal kontrolera — pole frazy u góry, trzy duże źródła wejścia, jeden przycisk wyszukiwania */
 :root{
-  --bg:#eef0ec; --panel:#ffffff; --ink:#1c211d; --muted:#5d665f; --line:#d3d8d1;
+  --bg:#e3e7e1; --card:#fbfcfa; --panel:#ffffff; --ink:#1c211d; --muted:#5d665f; --line:#d3d8d1;
   --accent:#f2b705; --accent-ink:#1c211d; --ok:#2f7d4a; --warn:#b4511c;
   --skin:#f0c8a4; --skin-sh:#d6a47c; --coat:#8a6a45; --coat-dark:#6a4f32; --lens:#cfe3ec;
   --hat:#1c211d; --hat-hi:#4a524c; --feat:#1c211d;
@@ -25,23 +32,32 @@ img{max-width:100%}
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
+  --bg:#0f1210; --card:#181c19; --panel:#1f2521; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
   --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52;
   --skin:#e2b48c; --skin-sh:#c08f68; --coat:#a5835a; --coat-dark:#7d6142; --lens:#2c4450;
   --hat:#e9ece7; --hat-hi:#a9b1ab; --feat:#1c211d; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
+  --bg:#0f1210; --card:#181c19; --panel:#1f2521; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
   --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52;
   --skin:#e2b48c; --skin-sh:#c08f68; --coat:#a5835a; --coat-dark:#7d6142; --lens:#2c4450;
   --hat:#e9ece7; --hat-hi:#a9b1ab; --feat:#1c211d; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
-.wrap{max-width:560px;margin:0 auto;padding-block:20px 40px;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  display:flex;flex-direction:column;gap:18px}
+.page{padding-block:clamp(12px,3vw,40px);
+  padding-left:max(clamp(10px,3vw,32px),env(safe-area-inset-left,0px));padding-right:max(clamp(10px,3vw,32px),env(safe-area-inset-right,0px))}
+.wrap{width:100%;max-width:clamp(320px,92vw,620px);margin:0 auto;
+  background:var(--card);border:1px solid var(--line);border-radius:clamp(14px,2.5vw,22px);
+  box-shadow:0 1px 2px rgba(20,24,21,.06),0 10px 30px -12px rgba(20,24,21,.18);
+  padding:clamp(14px,4vw,30px);
+  display:flex;flex-direction:column;gap:clamp(14px,2.6vw,20px)}
+@media (min-width:900px){.wrap{max-width:660px}}
 header{display:flex;align-items:center;gap:12px}
 .htext{min-width:0;flex:1}
-.detective{width:64px;height:64px;flex:none}
+.detective{width:64px;height:64px;flex:none;overflow:visible}
+.aibadge{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
+.aibadge .spark{animation:twinkle 2.4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.aibadge .spark{animation:none}}
 .mark{width:40px;height:40px;flex:none;border-radius:8px;background:var(--accent);display:grid;place-items:center}
 .mark svg{width:24px;height:24px}
 h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
@@ -76,27 +92,41 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .status{font-size:14px;color:var(--muted);min-height:20px}
 .status.err{color:var(--warn)}
+.hint{display:flex;align-items:flex-start;gap:10px}
+.qmark{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);display:grid;place-items:center;margin-top:1px;perspective:80px}
+.qmark span{color:#ffffff;font:800 18px/1 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;animation:qspin 2.4s linear infinite;display:block}
+:root[data-theme="dark"] .qmark{background:#3a423c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .qmark{background:#3a423c}}
+@keyframes qspin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+@media (prefers-reduced-motion: reduce){.qmark span{animation:none}}
 .status strong{display:block;color:var(--ink);font:600 15.5px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:0;-webkit-font-smoothing:antialiased}
 .share{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .go.alt{background:var(--ink);color:var(--bg);font-size:19px;cursor:pointer}
 .share .link{align-self:center}
 .lens{display:block;text-align:center;text-decoration:none;border:2px solid var(--ink);color:var(--ink);border-radius:12px;padding:14px;font:600 16px var(--body)}
-.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:3/4;max-width:100%;max-height:70vh}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
-.cam .aim{position:absolute;left:8%;right:8%;top:28%;height:34%;border:3px solid var(--accent);border-radius:8px}
+.cam .aim{transition:top .2s,height .2s;position:absolute;left:8%;right:8%;top:24%;height:34%;border:3px solid var(--accent);border-radius:8px}
 .cam .camclose{position:absolute;right:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
 .cambar{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px}
+.cam.narrow .aim{top:34%;height:13%}
+.cam .camtorch{position:absolute;left:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
+.cam .camtorch[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.cambar span{flex-basis:100%}
+.cambar .ghost{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5)}
 .cambar button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:10px 12px;font:700 15px var(--body)}
 .cambar button:disabled{opacity:.6}
+.install{display:flex;align-items:center;justify-content:center;gap:10px;background:transparent;color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:13px;font:600 16px var(--body);cursor:pointer}
+.install svg{width:22px;height:22px}
+.howto{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;display:flex;flex-direction:column;gap:6px}
+.howto ol{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.howto .muted{color:var(--muted);margin:6px 0 0;font-size:13px}
+.howto .link{align-self:flex-start}
 .chipsbox{display:flex;flex-direction:column;gap:6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .pick{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font:500 15px var(--mono);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .pick.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 #preview{max-height:180px;border-radius:10px;border:1px solid var(--line);align-self:flex-start}
-.hist{display:flex;flex-direction:column;gap:6px}
-.hist ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.hist button{width:100%;text-align:left;background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
-  color:var(--ink);font:500 15px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .link{background:none;border:0;color:var(--muted);font:500 13px var(--body);text-decoration:underline;padding:4px}
 footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-direction:column;gap:6px}
@@ -106,11 +136,17 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
 
 </head>
 <body>
+<div class="page">
 <div class="wrap">
   <header>
     <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1c211d" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg></div>
     <div class="htext"><h1>Wyszukiwarka instrukcji</h1><p class="sub">Instrukcja ustawień fabrycznych w jednym kroku</p></div>
-    <svg class="detective" viewBox="0 0 80 80" role="img" aria-label="Detektyw z lupą">
+    <svg class="detective" viewBox="0 0 80 80" role="img" aria-label="Detektyw z lupą i symbolem AI">
+      <g class="aibadge">
+        <rect x="43.5" y="2.5" width="33" height="20" rx="4" fill="#1c211d" stroke="#ffffff" stroke-width="1.6"/>
+        <text x="60" y="17.4" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-size="14.5" font-weight="900" letter-spacing=".6" fill="#ffd21f">AI</text>
+        <path class="spark" d="M76 0.5l1.1 2.6 2.6 1.1-2.6 1.1-1.1 2.6-1.1-2.6-2.6-1.1 2.6-1.1z" fill="#ffd21f" stroke="#1c211d" stroke-width=".6"/>
+      </g>
       <path d="M10 80c1-14 10-22 28-22s27 8 30 22z" fill="var(--coat)"/>
       <path d="M31 58l7 12 7-12z" fill="var(--panel)"/>
       <path d="M36.8 61h2.4l1.4 3-2.6 9.5-2.6-9.5z" fill="var(--accent)"/>
@@ -162,9 +198,11 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <video id="video" playsinline muted></video>
     <div class="aim" aria-hidden="true"></div>
     <button id="camClose" class="camclose" type="button">Zamknij</button>
+    <button id="camTorch" class="camtorch" type="button" aria-pressed="false" hidden>Latarka</button>
     <div class="cambar">
-      <span>Kod EAN łapie się sam. Napis ustaw w ramce.</span>
+      <button id="camFrame" class="ghost" type="button">Ramka: cała nazwa</button>
       <button id="camText" type="button">Odczytaj napis z ramki</button>
+      <span>Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.</span>
     </div>
   </div>
 
@@ -179,19 +217,33 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <button id="modeWeb" type="button" aria-pressed="false">Zwykłe wyniki<small>lista stron</small></button>
   </div>
 
-  <div class="status" id="status" role="status"><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę lub zeskanować kod z pudełka za pomocą skanera ręcznego.</strong></div>
+  <div class="status" id="status" role="status"><span class="hint"><span class="qmark" aria-hidden="true"><span>?</span></span><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę lub zeskanować kod z pudełka za pomocą skanera ręcznego.</strong></span></div>
 
   <a class="go" id="go" href="#" target="_blank" rel="noopener">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
     <span id="goLabel">Pokaż instrukcję</span>
   </a>
 
-  <section class="hist" id="histBox" hidden>
-    <div class="row"><span class="label">Ostatnie wyszukiwania</span><button class="link" id="histClear" type="button">Wyczyść</button></div>
-    <ul id="hist"></ul>
-  </section>
 
-  <footer><span class="ver">v. 1.2</span></footer>
+  <button class="install" id="btnInstall" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/><path d="M10 18.5h4"/></svg>
+    Dodaj skrót na ekran telefonu
+  </button>
+  <div class="howto" id="howto" hidden>
+    <div id="howIos" hidden>
+      <b>iPhone / iPad (Safari):</b>
+      <ol><li>Dotknij przycisku <b>Udostępnij</b> (kwadrat ze strzałką w górę) na dolnym lub górnym pasku.</li><li>Przewiń w dół i wybierz <b>Do ekranu początkowego</b>.</li><li>Dotknij <b>Dodaj</b>. Ikona pojawi się na ekranie.</li></ol>
+      <p class="muted">Na iPhonie skrót da się dodać tylko w Safari. Jeśli używasz Chrome, otwórz tę stronę w Safari.</p>
+    </div>
+    <div id="howAndroid" hidden>
+      <b>Android (Chrome):</b>
+      <ol><li>Dotknij <b>⋮</b> w prawym górnym rogu przeglądarki.</li><li>Wybierz <b>Dodaj do ekranu głównego</b> albo <b>Zainstaluj aplikację</b>.</li><li>Potwierdź <b>Dodaj</b>.</li></ol>
+    </div>
+    <button class="link" id="howClose" type="button">Zamknij</button>
+  </div>
+
+  <footer><span class="ver">v. 2.2</span></footer>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -214,7 +266,8 @@ function update(){
   meta.innerHTML = "";
   if(!v){ go.setAttribute("aria-disabled","true"); go.href = "#"; return; }
   go.removeAttribute("aria-disabled");
-  go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(PREFIX + v);
+  const phrase = aiMode ? PREFIX + v : v + " instrukcja resetu lub ustawień fabrycznych";
+  go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(phrase);
   const plain = v.replace(/\s/g,"");
   const ok = eanCheck(plain);
   const chip = (cls, t) => { const s = document.createElement("span"); s.className = "chip " + cls; s.textContent = t; meta.appendChild(s); };
@@ -236,22 +289,6 @@ $("modeWeb").onclick = () => setMode(false);
 q.addEventListener("input", () => { update(); });
 q.addEventListener("keydown", e => { if(e.key === "Enter" && q.value.trim()){ go.click(); } });
 
-/* Historia */
-const HKEY = "reset-skaner-hist";
-function loadHist(){ try{ return JSON.parse(localStorage.getItem(HKEY)) || []; }catch(e){ return []; } }
-function saveHist(h){ try{ localStorage.setItem(HKEY, JSON.stringify(h)); }catch(e){} }
-function renderHist(){
-  const h = loadHist(), ul = $("hist"); ul.innerHTML = "";
-  $("histBox").hidden = !h.length;
-  h.forEach(v => { const li = document.createElement("li"), b = document.createElement("button");
-    b.type = "button"; b.textContent = v; b.onclick = () => { q.value = v; update(); setStatus("Wczytano z historii. Dotknij żółty przycisk."); };
-    li.appendChild(b); ul.appendChild(li); });
-}
-go.addEventListener("click", () => {
-  const v = q.value.trim(); if(!v) return;
-  const h = [v, ...loadHist().filter(x => x !== v)].slice(0, 8); saveHist(h); renderHist();
-});
-$("histClear").onclick = () => { saveHist([]); renderHist(); };
 
 /* Dekodowanie kodu ze zdjęcia */
 const FORMATS = ["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"];
@@ -280,43 +317,39 @@ function showPreview(file){
 }
 
 
-/* Zdjęcie pudełka: odczyt kodu albo nazwy i modelu jako tekst */
-const samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+/* Odczyt nazwy i modelu z pudełka */
 function withTimeout(p, ms){ return Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]); }
-async function readBoxWithClaude(file){
-  const sample = await samplePromise;
-  if(!sample) return {ok:false, why:"none"};
-  const lim = await sample.limits().catch(() => null);
-  if(!lim || !lim.images) return {ok:false, why:"none"};
-  setStatus("Odczytuję nazwę i model z pudełka…");
-  try{
-    const r = await sample.json(
-      "Na zdjęciu jest opakowanie produktu (elektronika, AGD, narzędzie itp.). Odczytaj z niego producenta, nazwę produktu i dokładne oznaczenie modelu. " +
-      "Jeśli widać kod EAN zapisany cyframi, podaj go też. Nie zgaduj: pole, którego nie widać, zostaw puste. " +
-      'Odpowiedz tylko JSON: {"marka":"","nazwa":"","model":"","ean":""}. Przykład: {"marka":"Xiaomi","nazwa":"Router","model":"AX3000T","ean":""}',
-      { images: file, modelTier: "quick" });
-    const parts = [r && r.marka, r && r.nazwa, r && r.model].map(s => String(s || "").trim()).filter(Boolean);
-    const uniq = parts.filter((p, i) => !parts.slice(0, i).some(x => x.toLowerCase().includes(p.toLowerCase())));
-    if(uniq.length) return {ok:true, text:uniq.join(" ")};
-    const ean = String((r && r.ean) || "").replace(/\D/g, "");
-    return ean ? {ok:true, text:ean} : {ok:false, why:"empty"};
-  }catch(e){
-    return {ok:false, why: e && e.code || "error"};
-  }
-}
 function loadScript(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
 let ocrWorker = null;
 async function getWorker(){
   if(ocrWorker) return ocrWorker;
   if(!window.Tesseract) await withTimeout(loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"), 15000);
   setStatus("Pobieram moduł rozpoznawania tekstu (tylko za pierwszym razem)…");
-  ocrWorker = await withTimeout(Tesseract.createWorker("eng+pol", 1, { logger: m => {
-    if(m.status === "recognizing text") setStatus("Rozpoznaję napisy… " + Math.round(m.progress * 100) + "%");
-  }}), 60000);
+  ocrWorker = await withTimeout(Tesseract.createWorker("eng+pol", 1), 60000);
   return ocrWorker;
 }
+/* Oznaczenia modeli: O→0 i I/l→1 obok cyfr (AX3OOOT → AX3000T, S2l → S21) */
+function hasModelCode(t){ return t.split(" ").some(w => /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9\-\/+.]{3,}$/.test(w)); }
+function fixModel(text){
+  return text.split(" ").map(w => {
+    if(BRAND_KEYS.some(b => b.name === w)) return w;
+    if(!(/\d/.test(w) && /[A-Za-z]/.test(w)) || w.length < 3) return w;
+    const many = (w.match(/\d/g) || []).length >= 2;
+    let a = w.split(""), changed = true;
+    while(changed){
+      changed = false;
+      for(let i = 0; i < a.length; i++){
+        const near = /\d/.test(a[i-1] || "") || /\d/.test(a[i+1] || "");
+        if(!near) continue;
+        if(/[Oo]/.test(a[i])){ a[i] = "0"; changed = true; }
+        else if((many || i === a.length - 1) && /[Il|]/.test(a[i])){ a[i] = "1"; changed = true; }
+      }
+    }
+    return a.join("");
+  }).join(" ");
+}
 /* Skala szarości, rozciągnięcie kontrastu i powiększenie: Tesseract czyta wtedy znacznie lepiej */
-function prepCanvas(src, sx, sy, sw, sh){
+function prepCanvas(src, sx, sy, sw, sh, invert){
   const target = Math.min(2000, Math.max(1200, sw * 2));
   const k = target / sw;
   const c = document.createElement("canvas");
@@ -332,7 +365,8 @@ function prepCanvas(src, sx, sy, sw, sh){
   }
   const span = Math.max(1, hi - lo);
   for(let i = 0; i < d.length; i += 4){
-    const v = Math.max(0, Math.min(255, (d[i] - lo) * 255 / span));
+    let v = Math.max(0, Math.min(255, (d[i] - lo) * 255 / span));
+    if(invert) v = 255 - v;
     d[i] = d[i+1] = d[i+2] = v;
   }
   g.putImageData(img, 0, 0);
@@ -391,18 +425,31 @@ function fixBrands(text){
 function linesFrom(data){
   let lines = data.lines || [];
   if(!lines.length && data.blocks) data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(l => lines.push(l))));
-  return lines.map(l => { const f = fixBrands(cleanLine(l.text || "")); return { text: f.text, brand: f.brand, conf: (l.confidence || 0) + (f.brand ? 25 : 0) }; })
+  return lines.map(l => { const f = fixBrands(cleanLine(l.text || "")); const t = fixModel(f.text); return { text: t, brand: f.brand, conf: (l.confidence || 0) + (f.brand ? 25 : 0) + (hasModelCode(t) ? 8 : 0) }; })
     .filter(l => l.text.length >= 3 && l.conf >= 55)
     .sort((a, b) => b.conf - a.conf)
     .filter((l, i, arr) => arr.findIndex(x => x.text.toLowerCase() === l.text.toLowerCase()) === i)
     .slice(0, 8);
 }
-async function readBoxLocally(canvas, psm){
+async function ocrCanvas(canvas, psm){
   const w = await getWorker();
-  await w.setParameters({ tessedit_pageseg_mode: String(psm), preserve_interword_spaces: "1" });
-  setStatus("Rozpoznaję napisy…");
-  const r = await withTimeout(w.recognize(canvas, {}, { text: true, blocks: true }), 45000);
+  await w.setParameters({ tessedit_pageseg_mode: String(psm), preserve_interword_spaces: "1", user_defined_dpi: "300" });
+  const r = await withTimeout(w.recognize(canvas, {}, { text: true, blocks: true }), 30000);
   return linesFrom(r.data);
+}
+/* Łączenie wyników z kilku ujęć: linijka odczytana kilka razy dostaje premię */
+function mergeRuns(runs){
+  const map = new Map();
+  runs.flat().forEach(l => {
+    const k = l.text.toLowerCase().replace(/[^a-z0-9ąćęłńóśźż]/g, "");
+    if(!k) return;
+    let cur = map.get(k);
+    if(!cur && k.length >= 6) for(const [kk, vv] of map){ if(Math.abs(kk.length - k.length) <= 2 && lev(kk, k) <= Math.max(1, Math.floor(k.length * 0.15))){ cur = vv; break; } }
+    if(cur){ cur.hits++; if(l.conf > cur.conf){ cur.conf = l.conf; cur.text = l.text; cur.brand = l.brand || cur.brand; } }
+    else map.set(k, { ...l, hits: 1 });
+  });
+  return [...map.values()].map(l => ({ ...l, conf: l.conf + (l.hits - 1) * 10 }))
+    .sort((a, b) => b.conf - a.conf).slice(0, 8);
 }
 function showChips(lines){
   const box = $("chips"), wrap = $("chipsBox");
@@ -420,65 +467,79 @@ function showChips(lines){
   });
   wrap.hidden = !lines.length;
 }
-function photoToCanvas(blob){
-  return new Promise((ok, no) => {
-    const im = new Image(), u = URL.createObjectURL(blob);
-    im.onload = () => { URL.revokeObjectURL(u); ok(im); };
-    im.onerror = e => { URL.revokeObjectURL(u); no(e); };
-    im.src = u;
+function applyLines(lines){
+  if(!lines.length) return false;
+  const brandLine = lines.find(l => l.brand);
+  const strip = t => t.replace(/^(model|modell|type|typ|art\.?\s*no\.?|ref)\s*[:.]?\s*/i, "").trim();
+  const others = lines.filter(l => l !== brandLine && !l.brand);
+  const modelLine = others.find(l => hasModelCode(l.text) && strip(l.text).split(" ").length <= 3);
+  const nameLine = others.find(l => l !== modelLine && (l.text.match(/\p{L}/gu) || []).length >= 4);
+  const brandName = brandLine ? (brandLine.text.split(" ").length <= 2 ? brandLine.brand : brandLine.text) : "";
+  const partsOut = [];
+  [brandName, nameLine && nameLine.text, modelLine && strip(modelLine.text)].forEach(t => {
+    if(t && !partsOut.some(x => x.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(x.toLowerCase()))) partsOut.push(t);
   });
-}
-async function readBox(blob, tryCode, canvas){
-  showChips([]);
-  if(tryCode){
-    setStatus("Szukam kodu EAN na pudełku…");
-    try{
-      const code = await withTimeout(decodeImage(blob), 8000);
-      q.value = code; update(); setStatus("Na pudełku znalazłem kod EAN. Dotknij żółty przycisk."); return true;
-    }catch(err){}
-  }
-  const ai = await readBoxWithClaude(blob);
-  if(ai.ok){
-    q.value = ai.text; update();
-    setStatus("Odczytałem produkt z pudełka. Sprawdź nazwę i dotknij żółty przycisk."); return true;
-  }
-  if(ai.why === "none"){
-    try{
-      const lines = await readBoxLocally(canvas || await (async () => { const im = await photoToCanvas(blob); return prepCanvas(im, 0, 0, im.naturalWidth, im.naturalHeight); })(), canvas ? 6 : 11);
-      if(lines.length){
-        const brandLine = lines.find(l => l.brand);
-        const others = lines.filter(l => l !== brandLine && !l.brand);
-        const main = others.find(l => /\p{L}/u.test(l.text) && /\d/.test(l.text)) || others[0];
-        let picked = [];
-        if(brandLine && main) picked = [brandLine, main];
-        else picked = [brandLine || main || lines[0]];
-        const brandName = brandLine && brandLine.text.split(" ").length <= 2 ? brandLine.brand : null;
-        q.value = (brandName && main && !main.text.toLowerCase().includes(brandName.toLowerCase()) ? brandName + " " + main.text : picked.map(l => l.text).join(" ")).trim();
-        update(); showChips(lines);
-        [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
-        setStatus("Wpisałem najlepiej odczytany napis. Dotknij innych napisów poniżej, żeby je dodać lub usunąć.");
-        return true;
-      }
-    }catch(err){}
-  }
-  const msg = {
-    not_granted: "Bez zgody na odczyt nie odczytam napisów. Wpisz nazwę i model ręcznie albo otwórz stronę ponownie i zatwierdź zgodę.",
-    rate_limited: "Zbyt wiele odczytów naraz. Spróbuj za chwilę albo wpisz nazwę ręcznie.",
-    image_rejected: "Tego obrazu nie da się odczytać. Spróbuj jeszcze raz."
-  }[ai.why] || "Nie udało się odczytać nazwy ani modelu. Podejdź bliżej, tak żeby napis był ostry i wypełniał ramkę, albo wpisz go ręcznie.";
-  setStatus(msg, true);
-  return false;
+  const v = partsOut.length ? partsOut.join(" ") : lines[0].text;
+  q.value = v.trim(); update(); showChips(lines);
+  [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
+  setStatus("Wpisałem najlepiej odczytany napis. Dotknij innych napisów poniżej, żeby je dodać lub usunąć.");
+  return true;
 }
 
+/* Dźwięk i wibracja po udanym skanie */
+let audioCtx = null;
+function unlockAudio(){
+  try{
+    if(!audioCtx){ const AC = window.AudioContext || window.webkitAudioContext; if(AC) audioCtx = new AC(); }
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }catch(e){}
+}
+function beep(){
+  if(!audioCtx) return;
+  try{
+    const t = audioCtx.currentTime;
+    [[1760, 0], [2349, 0.09]].forEach(([f, d]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.35, t + d + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.11);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t + d); o.stop(t + d + 0.12);
+    });
+  }catch(e){}
+}
+function success(){ beep(); if(navigator.vibrate) navigator.vibrate(80); }
+
 /* Skanowanie na żywo */
-let liveReader = null;
+let liveReader = null, torchOn = false, narrow = false;
+function videoTrack(){ const v = $("video"); return v.srcObject ? v.srcObject.getVideoTracks()[0] : null; }
 function stopLive(){
   if(liveReader){ try{ liveReader.reset(); }catch(e){} liveReader = null; }
   const v = $("video"); if(v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+  torchOn = false; $("camTorch").hidden = true; $("camTorch").setAttribute("aria-pressed", "false");
   $("camBox").hidden = true; $("btnLive").hidden = false;
 }
 $("camClose").onclick = stopLive;
+function setupTorch(){
+  const t = videoTrack();
+  try{
+    const caps = t && t.getCapabilities ? t.getCapabilities() : {};
+    $("camTorch").hidden = !caps.torch;
+  }catch(e){ $("camTorch").hidden = true; }
+}
+$("camTorch").onclick = async () => {
+  const t = videoTrack(); if(!t) return;
+  try{ torchOn = !torchOn; await t.applyConstraints({ advanced: [{ torch: torchOn }] }); $("camTorch").setAttribute("aria-pressed", String(torchOn)); }
+  catch(e){ torchOn = false; $("camTorch").hidden = true; }
+};
+$("camFrame").onclick = () => {
+  narrow = !narrow;
+  $("camBox").classList.toggle("narrow", narrow);
+  $("camFrame").textContent = narrow ? "Ramka: jedna linijka" : "Ramka: cała nazwa";
+};
 $("btnLive").addEventListener("click", async () => {
+  unlockAudio();
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.ZXing){
     setStatus("Ta przeglądarka nie daje dostępu do aparatu. Wpisz EAN, nazwę albo model ręcznie.", true); return;
   }
@@ -487,40 +548,121 @@ $("btnLive").addEventListener("click", async () => {
   try{
     $("camBox").hidden = false; $("btnLive").hidden = true;
     liveReader = new ZXing.BrowserMultiFormatReader();
-    await liveReader.decodeFromConstraints({video:{facingMode:"environment", width:{ideal:1920}, height:{ideal:1080}}}, $("video"), (res) => {
+    await liveReader.decodeFromConstraints({video:{facingMode:"environment", width:{ideal:1920}, height:{ideal:1080}, focusMode:"continuous"}}, $("video"), (res) => {
       if(res && liveReader){
-        q.value = res.getText(); update(); stopLive();
-        if(navigator.vibrate) navigator.vibrate(80);
+        q.value = res.getText(); update(); showChips([]); stopLive();
+        success();
         setStatus("Kod zeskanowany. Dotknij żółty przycisk.");
       }
     });
+    setTimeout(setupTorch, 600);
     setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku.");
   }catch(err){
     stopLive();
     setStatus("Nie udało się włączyć aparatu. Sprawdź, czy strona ma zgodę na aparat, albo wpisz EAN, nazwę lub model ręcznie.", true);
   }
 });
-$("camText").addEventListener("click", async () => {
-  const v = $("video");
-  if(!v.videoWidth) return;
-  const box = $("camBox").getBoundingClientRect(), aim = document.querySelector(".cam .aim").getBoundingClientRect();
+/* Położenie ramki we współrzędnych obrazu z aparatu (podgląd jest przycięty do okna) */
+function aimFractions(){
+  const v = $("video"), box = $("camBox").getBoundingClientRect(), aim = document.querySelector(".cam .aim").getBoundingClientRect();
   const sc = Math.max(box.width / v.videoWidth, box.height / v.videoHeight);
   const ox = (box.width - v.videoWidth * sc) / 2, oy = (box.height - v.videoHeight * sc) / 2;
-  const sx = Math.max(0, (aim.left - box.left - ox) / sc), sy = Math.max(0, (aim.top - box.top - oy) / sc);
-  const sw = Math.min(v.videoWidth - sx, aim.width / sc), sh = Math.min(v.videoHeight - sy, aim.height / sc);
-  const canvas = prepCanvas(v, sx, sy, sw, sh);
-  const full = document.createElement("canvas"); full.width = sw; full.height = sh;
-  full.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, sw, sh);
-  const blob = await new Promise(r => full.toBlob(r, "image/jpeg", 0.92));
-  if(!blob) return;
+  const x = Math.max(0, (aim.left - box.left - ox) / sc / v.videoWidth), y = Math.max(0, (aim.top - box.top - oy) / sc / v.videoHeight);
+  const w = Math.min(1 - x, aim.width / sc / v.videoWidth), h = Math.min(1 - y, aim.height / sc / v.videoHeight);
+  return { x, y, w, h };
+}
+async function takeStill(){
+  const t = videoTrack();
+  if(!t || !("ImageCapture" in window)) return null;
+  try{
+    const blob = await withTimeout(new ImageCapture(t).takePhoto(), 5000);
+    const im = await photoToImage(blob);
+    const v = $("video");
+    if((im.naturalWidth > im.naturalHeight) !== (v.videoWidth > v.videoHeight)) return null;
+    return im;
+  }catch(e){ return null; }
+}
+function photoToImage(blob){
+  return new Promise((ok, no) => {
+    const im = new Image(), u = URL.createObjectURL(blob);
+    im.onload = () => { URL.revokeObjectURL(u); ok(im); };
+    im.onerror = e => { URL.revokeObjectURL(u); no(e); };
+    im.src = u;
+  });
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+$("camText").addEventListener("click", async () => {
+  unlockAudio();
+  const v = $("video");
+  if(!v.videoWidth) return;
   const btn = $("camText"); btn.disabled = true; btn.textContent = "Odczytuję…";
   if(navigator.vibrate) navigator.vibrate(30);
-  const ok = await readBox(blob, false, canvas);
+  showChips([]);
+  let ok = false;
+  try{
+    const f = aimFractions();
+    const vw = v.videoWidth, vh = v.videoHeight;
+    // Klatki z podglądu (od razu) i ostre zdjęcie z autofokusem (jeśli telefon pozwala)
+    const frame = c => { const x = document.createElement("canvas"); x.width = vw; x.height = vh; x.getContext("2d").drawImage(v, 0, 0); return x; };
+    const frames = [frame()];
+    setStatus("Robię ostre zdjęcie…");
+    const still = await takeStill();
+    if(!still){ await wait(180); frames.push(frame()); }
+    const src = still || frames[0];
+    const sw = still ? still.naturalWidth : vw, sh = still ? still.naturalHeight : vh;
+
+    if(!ok){
+      const psm = narrow ? 7 : 6;
+      const crops = [];
+      if(still) crops.push(prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh));
+      frames.forEach(fr => crops.push(prepCanvas(fr, f.x * vw, f.y * vh, f.w * vw, f.h * vh)));
+      const runs = [];
+      for(let i = 0; i < crops.length; i++){
+        setStatus("Rozpoznaję napisy… (ujęcie " + (i + 1) + " z " + (crops.length + 1) + ")");
+        try{ runs.push(await ocrCanvas(crops[i], psm)); }catch(e){}
+      }
+      const best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
+      if(best < 85){
+        setStatus("Sprawdzam jasny napis na ciemnym tle…");
+        const inv = still ? prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh, true) : prepCanvas(frames[0], f.x * vw, f.y * vh, f.w * vw, f.h * vh, true);
+        try{ runs.push(await ocrCanvas(inv, psm)); }catch(e){}
+      }
+      ok = applyLines(mergeRuns(runs));
+      if(!ok) setStatus("Nie udało się odczytać nazwy ani modelu. Podejdź bliżej, włącz latarkę albo przełącz ramkę na jedną linijkę i ustaw w niej sam model.", true);
+    }
+  }catch(e){
+    setStatus("Nie udało się odczytać napisu. Spróbuj jeszcze raz albo wpisz go ręcznie.", true);
+  }
   btn.disabled = false; btn.textContent = "Odczytaj napis z ramki";
-  if(ok){ stopLive(); if(navigator.vibrate) navigator.vibrate(80); }
+  if(ok){ stopLive(); success(); }
 });
 
-setMode(aiMode); renderHist();
+try{ localStorage.removeItem("wyszukiwarka-gemini-key"); localStorage.removeItem("wyszukiwarka-gemini-model"); }catch(e){}
+
+/* Skrót na ekranie telefonu */
+let installEvt = null;
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+if(standalone) $("btnInstall").hidden = true;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+window.addEventListener("appinstalled", () => { $("btnInstall").hidden = true; $("howto").hidden = true; setStatus("Skrót dodany. Ikona „Instrukcje” jest na ekranie telefonu."); });
+$("btnInstall").onclick = async () => {
+  if(installEvt){
+    installEvt.prompt();
+    try{ const c = await installEvt.userChoice; if(c.outcome === "accepted") $("btnInstall").hidden = true; }catch(e){}
+    installEvt = null; return;
+  }
+  $("howIos").hidden = !isIos; $("howAndroid").hidden = isIos;
+  $("howto").hidden = false;
+  $("howto").scrollIntoView({ behavior: "smooth", block: "nearest" });
+};
+$("howClose").onclick = () => { $("howto").hidden = true; };
+if("serviceWorker" in navigator && location.protocol === "https:" && !/claude|claudeusercontent/.test(location.hostname)){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+setMode(aiMode);
+try{ localStorage.removeItem("reset-skaner-hist"); }catch(e){}
 </script>
 </body>
 </html>
