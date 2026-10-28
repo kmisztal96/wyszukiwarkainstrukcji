@@ -109,6 +109,9 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .cam .aim{transition:top .2s,height .2s;position:absolute;left:8%;right:8%;top:24%;height:34%;border:3px solid var(--accent);border-radius:8px}
 .cam .camclose{position:absolute;right:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
 .cambar{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px}
+.cam canvas#freeze{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.cam.frozen .aim{border-style:dashed;opacity:.55;pointer-events:none}
+.cam .sel{position:absolute;border:2px solid var(--accent);background:rgba(245,194,43,.18);border-radius:4px;pointer-events:none}
 .cam.narrow .aim{top:34%;height:13%}
 .cam .camtorch{position:absolute;left:10px;top:10px;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:8px 12px;font:600 14px var(--body)}
 .cam .camtorch[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -198,13 +201,17 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
 
   <div class="cam" id="camBox" hidden>
     <video id="video" playsinline muted></video>
+    <canvas id="freeze" hidden></canvas>
     <div class="aim" aria-hidden="true"></div>
+    <div class="sel" id="sel" hidden></div>
     <button id="camClose" class="camclose" type="button">Zamknij</button>
     <button id="camTorch" class="camtorch" type="button" aria-pressed="false" hidden>Latarka</button>
     <div class="cambar">
       <button id="camFrame" class="ghost" type="button">Ramka: cała nazwa</button>
-      <button id="camText" type="button">Odczytaj napis z ramki</button>
-      <span>Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.</span>
+      <button id="camText" type="button">Zatrzymaj i odczytaj</button>
+      <button id="camBack" class="ghost" type="button" hidden>Skanuj ponownie</button>
+      <button id="camDone" type="button" hidden>Gotowe</button>
+      <span id="camHint">Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.</span>
     </div>
   </div>
 
@@ -227,7 +234,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 2.5</span></footer>
+  <footer><span class="ver">v. 2.6</span></footer>
 
 </div>
 <div class="below">
@@ -335,7 +342,7 @@ function prewarmOcr(){ const go = () => getWorker().catch(() => {}); ("requestId
 async function createOcr(){
   if(!window.Tesseract) await withTimeout(loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"), 15000);
   ocrWorker = await withTimeout(Tesseract.createWorker("eng", 1), 60000);
-  await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
+  await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300", tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-+/.&' " });
   return ocrWorker;
 }
 /* Oznaczenia modeli: O→0 i I/l→1 obok cyfr (AX3OOOT → AX3000T, S2l → S21) */
@@ -359,27 +366,55 @@ function fixModel(text){
   }).join(" ");
 }
 /* Skala szarości, rozciągnięcie kontrastu i powiększenie: Tesseract czyta wtedy znacznie lepiej */
-function prepCanvas(src, sx, sy, sw, sh, invert){
-  const k = Math.max(0.35, Math.min(2.5, 1100 / sw, 900000 / (sw * sh)));
+function prepCanvas(src, sx, sy, sw, sh, invert, zoom){
+  const k = zoom
+    ? Math.max(1, Math.min(4, 1400 / sw, 1200000 / (sw * sh)))
+    : Math.max(0.35, Math.min(2.5, 1300 / sw, 1200000 / (sw * sh)));
   const c = document.createElement("canvas");
-  c.width = Math.round(sw * k); c.height = Math.round(sh * k);
-  const g = c.getContext("2d");
+  const W = c.width = Math.max(8, Math.round(sw * k)), H = c.height = Math.max(8, Math.round(sh * k));
+  const g = c.getContext("2d", { willReadFrequently: true });
   g.imageSmoothingQuality = "high";
-  g.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
-  const img = g.getImageData(0, 0, c.width, c.height), d = img.data;
-  let lo = 255, hi = 0;
-  for(let i = 0; i < d.length; i += 4){
-    const y = (d[i] * 299 + d[i+1] * 587 + d[i+2] * 114) / 1000;
-    d[i] = y; if(y < lo) lo = y; if(y > hi) hi = y;
+  g.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
+  const img = g.getImageData(0, 0, W, H), d = img.data, n = W * H;
+  const y = new Float32Array(n);
+  for(let i = 0, j = 0; j < n; i += 4, j++) y[j] = (d[i] * 299 + d[i+1] * 587 + d[i+2] * 114) / 1000;
+  // Wyostrzenie: litery mają ostrzejsze krawędzie
+  const out = new Float32Array(n);
+  for(let r = 0; r < H; r++) for(let col = 0; col < W; col++){
+    const j = r * W + col;
+    if(r === 0 || col === 0 || r === H - 1 || col === W - 1){ out[j] = y[j]; continue; }
+    out[j] = 5 * y[j] - y[j - 1] - y[j + 1] - y[j - W] - y[j + W];
   }
+  // Rozciągnięcie kontrastu z pominięciem odblasków i najciemniejszych plam
+  const hist = new Uint32Array(256);
+  for(let j = 0; j < n; j++) hist[Math.max(0, Math.min(255, out[j] | 0))]++;
+  let lo = 0, hi = 255, acc = 0;
+  for(let v = 0; v < 256; v++){ acc += hist[v]; if(acc > n * 0.02){ lo = v; break; } }
+  acc = 0;
+  for(let v = 255; v >= 0; v--){ acc += hist[v]; if(acc > n * 0.02){ hi = v; break; } }
   const span = Math.max(1, hi - lo);
-  for(let i = 0; i < d.length; i += 4){
-    let v = Math.max(0, Math.min(255, (d[i] - lo) * 255 / span));
+  for(let i = 0, j = 0; j < n; i += 4, j++){
+    let v = Math.max(0, Math.min(255, (out[j] - lo) * 255 / span));
     if(invert) v = 255 - v;
     d[i] = d[i+1] = d[i+2] = v;
   }
   g.putImageData(img, 0, 0);
   return c;
+}
+/* Ostrość obrazu (wariancja laplasjanu) – wybieramy najostrzejsze ujęcie */
+function sharpness(src, sw, sh, f){
+  const W = 160, H = Math.max(20, Math.round(160 * (f.h * sh) / (f.w * sw)));
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.drawImage(src, f.x * sw, f.y * sh, f.w * sw, f.h * sh, 0, 0, W, H);
+  const d = g.getImageData(0, 0, W, H).data, y = new Float32Array(W * H);
+  for(let i = 0, j = 0; j < W * H; i += 4, j++) y[j] = d[i] * 0.3 + d[i+1] * 0.59 + d[i+2] * 0.11;
+  let sum = 0, sq = 0, cnt = 0;
+  for(let r = 1; r < H - 1; r++) for(let col = 1; col < W - 1; col++){
+    const j = r * W + col, l = 4 * y[j] - y[j-1] - y[j+1] - y[j-W] - y[j+W];
+    sum += l; sq += l * l; cnt++;
+  }
+  const m = sum / cnt; return sq / cnt - m * m;
 }
 function cleanLine(t){
   const words = t.replace(/[|_~`'"“”‘’«»©®™°•·*#^=<>\[\]{}()\\]/g, " ").split(/\s+/)
@@ -522,11 +557,12 @@ function beep(){
 function success(){ beep(); if(navigator.vibrate) navigator.vibrate(80); }
 
 /* Skanowanie na żywo */
-let liveReader = null, torchOn = false, narrow = false;
+let liveReader = null, torchOn = false, narrow = false, frozen = null, lastLines = [];
 function videoTrack(){ const v = $("video"); return v.srcObject ? v.srcObject.getVideoTracks()[0] : null; }
 function stopLive(){
   if(liveReader){ try{ liveReader.reset(); }catch(e){} liveReader = null; }
   const v = $("video"); if(v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+  unfreeze();
   torchOn = false; $("camTorch").hidden = true; $("camTorch").setAttribute("aria-pressed", "false");
   $("camBox").hidden = true; $("btnLive").hidden = false;
 }
@@ -559,7 +595,7 @@ $("btnLive").addEventListener("click", async () => {
     $("camBox").hidden = false; $("btnLive").hidden = true;
     liveReader = new ZXing.BrowserMultiFormatReader();
     await liveReader.decodeFromConstraints({video:{facingMode:"environment", width:{ideal:1920}, height:{ideal:1080}, focusMode:"continuous"}}, $("video"), (res) => {
-      if(res && liveReader){
+      if(res && liveReader && !frozen){
         q.value = res.getText(); update(); showChips([]); stopLive();
         success();
         setStatus("Kod zeskanowany. Dotknij żółty przycisk.");
@@ -602,45 +638,115 @@ function photoToImage(blob){
   });
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
+/* Zatrzymany obraz: odczyt ramki, potem dowolny fragment zaznaczony palcem */
+function setFrozenUi(on){
+  $("camBox").classList.toggle("frozen", on);
+  $("freeze").hidden = !on;
+  ["camText", "camFrame"].forEach(id => $(id).hidden = on);
+  ["camBack", "camDone"].forEach(id => $(id).hidden = !on);
+  $("camHint").textContent = on ? "Obraz zatrzymany. Przeciągnij palcem po napisie, żeby odczytać dokładnie ten fragment." : "Kod EAN łapie się sam. Napis ustaw w ramce, jak najbliżej.";
+  $("sel").hidden = true;
+}
+function unfreeze(){ frozen = null; setFrozenUi(false); }
+function drawFrozen(){
+  const cv = $("freeze"), box = $("camBox").getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(box.width * dpr); cv.height = Math.round(box.height * dpr);
+  const { img, w, h } = frozen;
+  const sc = Math.max(box.width / w, box.height / h);
+  frozen.map = { sc, ox: (box.width - w * sc) / 2, oy: (box.height - h * sc) / 2 };
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.drawImage(img, frozen.map.ox, frozen.map.oy, w * sc, h * sc);
+}
+function addLines(newLines, zoomed){
+  lastLines = mergeRuns([lastLines, newLines]);
+  if(!zoomed) return applyLines(lastLines);
+  const best = newLines.slice().sort((a, b) => b.conf - a.conf)[0];
+  if(!best) return false;
+  const cur = q.value.trim();
+  if(!cur.toLowerCase().includes(best.text.toLowerCase())) q.value = (cur ? cur + " " : "") + best.text;
+  update(); showChips(lastLines);
+  [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
+  setStatus("Dodałem „" + best.text + "”. Zaznacz kolejny napis albo dotknij „Gotowe”.");
+  return true;
+}
+async function readRegion(x, y, w, h, zoom){
+  const psm = zoom ? (w / h > 3.2 ? 7 : 6) : (narrow ? 7 : 6);
+  const runs = [];
+  setStatus("Rozpoznaję napisy…");
+  try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, false, zoom), psm)); }catch(e){}
+  const best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
+  if(best < 70){
+    setStatus("Sprawdzam jasny napis na ciemnym tle…");
+    try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, true, zoom), psm)); }catch(e){}
+  }
+  return mergeRuns(runs);
+}
 $("camText").addEventListener("click", async () => {
   unlockAudio();
   const v = $("video");
-  if(!v.videoWidth) return;
+  if(!v.videoWidth || frozen) return;
   const btn = $("camText"); btn.disabled = true; btn.textContent = "Odczytuję…";
   if(navigator.vibrate) navigator.vibrate(30);
-  showChips([]);
+  showChips([]); lastLines = [];
   let ok = false;
   try{
     const f = aimFractions();
     const vw = v.videoWidth, vh = v.videoHeight;
-    // Klatki z podglądu (od razu) i ostre zdjęcie z autofokusem (jeśli telefon pozwala)
-    const frame = c => { const x = document.createElement("canvas"); x.width = vw; x.height = vh; x.getContext("2d").drawImage(v, 0, 0); return x; };
-    const frames = [frame()];
-    setStatus("Robię ostre zdjęcie…");
-    const still = await takeStill();
-    const src = still || frames[0];
-    const sw = still ? still.naturalWidth : vw, sh = still ? still.naturalHeight : vh;
-
-    if(!ok){
-      const psm = narrow ? 7 : 6;
-      const crop = (inv) => still ? prepCanvas(still, f.x * sw, f.y * sh, f.w * sw, f.h * sh, inv) : prepCanvas(frames[0], f.x * vw, f.y * vh, f.w * vw, f.h * vh, inv);
-      const runs = [];
-      setStatus("Rozpoznaję napisy…");
-      try{ runs.push(await ocrCanvas(crop(false), psm)); }catch(e){}
-      const best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
-      if(best < 70){
-        setStatus("Sprawdzam jasny napis na ciemnym tle…");
-        try{ runs.push(await ocrCanvas(crop(true), psm)); }catch(e){}
-      }
-      ok = applyLines(mergeRuns(runs));
-      if(!ok) setStatus("Nie udało się odczytać nazwy ani modelu. Podejdź bliżej, włącz latarkę albo przełącz ramkę na jedną linijkę i ustaw w niej sam model.", true);
+    // Seria klatek i ostre zdjęcie naraz; zostaje najostrzejsze ujęcie
+    setStatus("Zatrzymuję obraz…");
+    const stillP = takeStill();
+    const frames = [];
+    for(let i = 0; i < 4; i++){
+      const x = document.createElement("canvas"); x.width = vw; x.height = vh; x.getContext("2d").drawImage(v, 0, 0);
+      frames.push(x); if(i < 3) await wait(90);
     }
+    const still = await stillP;
+    const cands = frames.map(c => ({ img: c, w: vw, h: vh }));
+    if(still) cands.push({ img: still, w: still.naturalWidth, h: still.naturalHeight });
+    cands.forEach(c => c.score = sharpness(c.img, c.w, c.h, f) * (c.img === still ? 1.15 : 1));
+    frozen = cands.sort((a, b) => b.score - a.score)[0];
+    setFrozenUi(true); drawFrozen();
+    const lines = await readRegion(f.x * frozen.w, f.y * frozen.h, f.w * frozen.w, f.h * frozen.h, false);
+    ok = addLines(lines, false);
+    if(ok) setStatus("Wpisałem odczytany napis. Jeśli czegoś brakuje, przeciągnij palcem po tym napisie na zdjęciu.");
+    else setStatus("Nie udało się odczytać napisu z ramki. Przeciągnij palcem po samym napisie na zdjęciu albo dotknij „Skanuj ponownie”.", true);
   }catch(e){
     setStatus("Nie udało się odczytać napisu. Spróbuj jeszcze raz albo wpisz go ręcznie.", true);
   }
-  btn.disabled = false; btn.textContent = "Odczytaj napis z ramki";
-  if(ok){ stopLive(); success(); }
+  btn.disabled = false; btn.textContent = "Zatrzymaj i odczytaj";
+  if(ok) success();
 });
+/* Zaznaczanie palcem na zatrzymanym obrazie */
+let drag = null;
+$("freeze").addEventListener("pointerdown", e => {
+  if(!frozen) return;
+  const r = $("camBox").getBoundingClientRect();
+  drag = { x0: e.clientX - r.left, y0: e.clientY - r.top, x1: e.clientX - r.left, y1: e.clientY - r.top };
+  $("freeze").setPointerCapture(e.pointerId); e.preventDefault();
+});
+$("freeze").addEventListener("pointermove", e => {
+  if(!drag) return;
+  const r = $("camBox").getBoundingClientRect();
+  drag.x1 = Math.max(0, Math.min(r.width, e.clientX - r.left)); drag.y1 = Math.max(0, Math.min(r.height, e.clientY - r.top));
+  const sel = $("sel"); sel.hidden = false;
+  Object.assign(sel.style, { left: Math.min(drag.x0, drag.x1) + "px", top: Math.min(drag.y0, drag.y1) + "px", width: Math.abs(drag.x1 - drag.x0) + "px", height: Math.abs(drag.y1 - drag.y0) + "px" });
+});
+$("freeze").addEventListener("pointerup", async () => {
+  if(!drag || !frozen) return;
+  const d = drag; drag = null;
+  let bx = Math.min(d.x0, d.x1), by = Math.min(d.y0, d.y1), bw = Math.abs(d.x1 - d.x0), bh = Math.abs(d.y1 - d.y0);
+  if(bw < 24){ $("sel").hidden = true; return; }
+  if(bh < 18){ by -= (24 - bh) / 2; bh = 24; }
+  const m = frozen.map, x = Math.max(0, (bx - m.ox) / m.sc), y = Math.max(0, (by - m.oy) / m.sc);
+  const w = Math.min(frozen.w - x, bw / m.sc), h = Math.min(frozen.h - y, bh / m.sc);
+  const lines = await readRegion(x, y, w, h, true);
+  if(addLines(lines, true)) success();
+  else setStatus("W zaznaczonym miejscu nie odczytałem napisu. Zaznacz napis trochę szerzej, z małym marginesem.", true);
+});
+$("camBack").onclick = () => { unfreeze(); setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku."); };
+$("camDone").onclick = () => { stopLive(); setStatus("Sprawdź nazwę w polu i dotknij żółty przycisk."); };
+
 
 try{ localStorage.removeItem("wyszukiwarka-gemini-key"); localStorage.removeItem("wyszukiwarka-gemini-model"); }catch(e){}
 
