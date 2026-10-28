@@ -86,7 +86,9 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .mode button{border:0;border-radius:9px;padding:9px 6px;background:transparent;color:var(--muted);font:600 15px/1.2 var(--body);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
 .mode button small{font-weight:500;font-size:12px}
 .mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.status{font-size:14px;color:var(--muted);min-height:20px}
+.status{font-size:14px;color:var(--muted)}
+#status:empty{display:none}
+.status.ok{color:var(--ok);font-weight:600}
 .status.err{color:var(--warn)}
 .hint{display:flex;align-items:flex-start;gap:10px}
 .qmark{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);display:grid;place-items:center;margin-top:1px;perspective:80px}
@@ -125,6 +127,9 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .chipsbox{display:flex;flex-direction:column;gap:6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .pick{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font:500 15px var(--mono);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.trash{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;border:1px solid #d9534f;background:rgba(217,83,79,.14);color:#ff6b66;cursor:pointer;padding:0}
+.trash svg{width:20px;height:20px}
+.trash:active{background:rgba(217,83,79,.3)}
 .pick.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 #preview{max-height:180px;border-radius:10px;border:1px solid var(--line);align-self:flex-start}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -225,7 +230,8 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <button id="modeWeb" type="button" aria-pressed="false">Zwykłe wyniki<small>lista stron</small></button>
   </div>
 
-  <div class="status" id="status" role="status"><span class="hint"><span class="qmark" aria-hidden="true"><span>?</span></span><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę i model produktu lub zeskanować kod EAN z pudełka za pomocą skanera ręcznego.</strong></span></div>
+  <div class="status hintbox"><span class="hint"><span class="qmark" aria-hidden="true"><span>?</span></span><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę i model produktu lub zeskanować kod EAN z pudełka za pomocą skanera ręcznego.</strong></span></div>
+  <div class="status" id="status" role="status"></div>
 
   <a class="go" id="go" href="#" target="_blank" rel="noopener">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -233,7 +239,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.12 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.15 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -262,7 +268,7 @@ const PREFIX = "Wyszukaj dla mnie instrukcję resetu pamięci lub ustawień fabr
 const $ = id => document.getElementById(id);
 const q = $("q"), go = $("go"), statusEl = $("status"), meta = $("meta");
 
-function setStatus(t, err){ statusEl.textContent = t; statusEl.classList.toggle("err", !!err); }
+function setStatus(t, err, ok){ statusEl.textContent = t; statusEl.classList.toggle("err", !!err); statusEl.classList.toggle("ok", !!ok && !err); }
 
 function eanCheck(d){
   if(!/^\d+$/.test(d) || ![8,12,13,14].includes(d.length)) return null;
@@ -308,7 +314,7 @@ go.addEventListener("click", () => {
   if(!v || go.getAttribute("aria-disabled") === "true") return;
   setTimeout(() => {
     q.value = ""; update(); showChips([]);
-    setStatus("Wyszukano: " + v + ". Pole jest puste i gotowe na kolejny produkt.");
+    setStatus("Wyszukano: " + v + ". Pole jest puste i gotowe na kolejny produkt.", false, true);
     try{ q.focus({ preventScroll: true }); }catch(e){}
   }, 0);
 });
@@ -529,6 +535,13 @@ function showChips(lines){
     };
     box.appendChild(b);
   });
+  if(lines.length){
+    const t = document.createElement("button");
+    t.type = "button"; t.className = "trash"; t.title = "Usuń odczytane napisy"; t.setAttribute("aria-label", "Usuń odczytane napisy");
+    t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>';
+    t.onclick = () => { lastLines = []; showChips([]); setStatus("Usunąłem odczytane napisy. Tekst w polu został bez zmian."); };
+    box.appendChild(t);
+  }
   wrap.hidden = !lines.length;
 }
 function applyLines(lines){
@@ -545,7 +558,7 @@ function applyLines(lines){
   });
   const v = partsOut.length ? partsOut.join(" ") : lines[0].text;
   q.value = v.trim(); update(); showChips(lines);
-  [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
+  [...$("chips").querySelectorAll(".pick")].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
   setStatus("Wpisałem najlepiej odczytany napis. Dotknij innych napisów poniżej, żeby je dodać lub usunąć.");
   return true;
 }
@@ -636,6 +649,19 @@ function centerCam(){
   setTimeout(go, 450);
 }
 $("video").addEventListener("loadedmetadata", () => { if(!$("camBox").hidden) centerCam(); });
+/* Gdy nad podglądem zmienia się zawartość (pole, napisy, komunikaty), podgląd zostaje na środku aż do „Gotowe” */
+let keepRaf = 0;
+function keepCam(){
+  if($("camBox").hidden || drag) return;
+  cancelAnimationFrame(keepRaf);
+  keepRaf = requestAnimationFrame(() => { try{ $("camBox").scrollIntoView({ behavior: "auto", block: "center" }); }catch(e){} });
+}
+if("ResizeObserver" in window){
+  const ro = new ResizeObserver(keepCam);
+  ro.observe(document.querySelector(".wrap"));
+  ro.observe(document.querySelector(".phrase"));
+}
+window.addEventListener("resize", keepCam);
 /* Położenie ramki we współrzędnych obrazu z aparatu (podgląd jest przycięty do okna) */
 function aimFractions(){
   const v = $("video"), box = $("camBox").getBoundingClientRect(), aim = document.querySelector(".cam .aim").getBoundingClientRect();
@@ -693,7 +719,7 @@ function addLines(newLines, zoomed){
   const cur = q.value.trim();
   if(!cur.toLowerCase().includes(best.text.toLowerCase())) q.value = (cur ? cur + " " : "") + best.text;
   update(); showChips(lastLines);
-  [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
+  [...$("chips").querySelectorAll(".pick")].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
   setStatus("Dodałem „" + best.text + "”. Zaznacz kolejny napis albo dotknij „Gotowe”.");
   return true;
 }
