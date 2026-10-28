@@ -246,7 +246,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.03 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.05 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -293,7 +293,7 @@ function update(){
   go.removeAttribute("aria-disabled");
   const digits = v.replace(/\s/g, "");
   const isEan = /^\d+$/.test(digits) && [8, 12, 13, 14].includes(digits.length);
-  const phrase = aiMode ? (isEan ? "Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych dla produktu z kodem EAN: " + digits : PREFIX + v)
+  const phrase = aiMode ? (isEan ? "Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych dla produktu z kodem EAN: " + digits : PREFIX + v) + ". Załącz zdjęcia instruktażowe."
     : isEan ? "Instrukcja resetu lub ustawień fabrycznych dla produktu o kodzie EAN: " + digits
     : v + " instrukcja resetu lub ustawień fabrycznych";
   go.href = "https://www.google.com/search?" + (aiMode ? "udm=50&" : "") + "q=" + encodeURIComponent(phrase);
@@ -881,7 +881,7 @@ $("camText").addEventListener("click", async () => {
     setFrozenUi(true); drawFrozen();
     const lines = await readRegion(f.x * frozen.w, f.y * frozen.h, f.w * frozen.w, f.h * frozen.h, false);
     ok = addLines(lines, false);
-    if(ok) setStatus("Wpisałem odczytany napis. Jeśli czegoś brakuje, przeciągnij palcem po tym napisie na zdjęciu.");
+    if(ok) setStatus("Wpisałem odczytany napis. Jeśli czegoś brakuje, przeciągnij palcem, aby zaznaczyć resztę tekstu.");
     else setStatus("Nie udało się odczytać napisu z ramki. Przeciągnij palcem po samym napisie na zdjęciu albo dotknij „Skanuj ponownie”.", true);
   }catch(e){
     setStatus("Nie udało się odczytać napisu. Spróbuj jeszcze raz albo wpisz go ręcznie.", true);
