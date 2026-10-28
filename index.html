@@ -234,7 +234,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 2.6</span></footer>
+  <footer><span class="ver">v. 2.7</span></footer>
 
 </div>
 <div class="below">
@@ -768,9 +768,11 @@ $("btnInstall").onclick = async () => {
   $("howto").scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 $("howClose").onclick = () => { $("howto").hidden = true; };
-if("serviceWorker" in navigator && location.protocol === "https:" && !/claude|claudeusercontent/.test(location.hostname)){
-  navigator.serviceWorker.register("sw.js").catch(() => {});
-}
+/* Usunięcie dawnego pomocnika (sw.js) i jego kopii z telefonu */
+try{
+  if("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+  if("caches" in window) caches.keys().then(ks => ks.filter(k => k.startsWith("wyszukiwarka")).forEach(k => caches.delete(k))).catch(() => {});
+}catch(e){}
 
 setMode(aiMode);
 try{ localStorage.removeItem("reset-skaner-hist"); }catch(e){}
