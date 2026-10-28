@@ -18,22 +18,30 @@ img{max-width:100%}
 :root{
   --bg:#eef0ec; --panel:#ffffff; --ink:#1c211d; --muted:#5d665f; --line:#d3d8d1;
   --accent:#f2b705; --accent-ink:#1c211d; --ok:#2f7d4a; --warn:#b4511c;
+  --skin:#f0c8a4; --skin-sh:#d6a47c; --coat:#8a6a45; --coat-dark:#6a4f32; --lens:#cfe3ec;
+  --hat:#1c211d; --hat-hi:#4a524c; --feat:#1c211d;
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
-  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52; color-scheme:dark}}
+  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52;
+  --skin:#e2b48c; --skin-sh:#c08f68; --coat:#a5835a; --coat-dark:#7d6142; --lens:#2c4450;
+  --hat:#e9ece7; --hat-hi:#a9b1ab; --feat:#1c211d; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141815; --panel:#1d221e; --ink:#e9ece7; --muted:#9aa49c; --line:#323a34;
-  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52; color-scheme:dark}
+  --accent:#f5c22b; --accent-ink:#141815; --ok:#62c084; --warn:#f08a52;
+  --skin:#e2b48c; --skin-sh:#c08f68; --coat:#a5835a; --coat-dark:#7d6142; --lens:#2c4450;
+  --hat:#e9ece7; --hat-hi:#a9b1ab; --feat:#1c211d; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
 .wrap{max-width:560px;margin:0 auto;padding-block:20px 40px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   display:flex;flex-direction:column;gap:18px}
 header{display:flex;align-items:center;gap:12px}
+.htext{min-width:0;flex:1}
+.detective{width:64px;height:64px;flex:none}
 .mark{width:40px;height:40px;flex:none;border-radius:8px;background:var(--accent);display:grid;place-items:center}
 .mark svg{width:24px;height:24px}
 h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
@@ -45,7 +53,8 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 #q{width:100%;font:500 20px/1.3 var(--mono);color:var(--ink);background:var(--bg);border:2px solid var(--line);
   border-radius:10px;padding:12px;min-height:54px}
 #q:focus{outline:none;border-color:var(--accent)}
-.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:24px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.meta:empty{display:none}
 .chip{font-size:13px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid currentColor}
 .chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.info{color:var(--muted)}
 .sources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -67,6 +76,7 @@ h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;margi
 .mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .status{font-size:14px;color:var(--muted);min-height:20px}
 .status.err{color:var(--warn)}
+.status strong{display:block;color:var(--ink);font:600 15.5px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:0;-webkit-font-smoothing:antialiased}
 .share{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .go.alt{background:var(--ink);color:var(--bg);font-size:19px;cursor:pointer}
 .share .link{align-self:center}
@@ -99,12 +109,46 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
 <div class="wrap">
   <header>
     <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1c211d" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg></div>
-    <div><h1>Wyszukiwarka instrukcji</h1><p class="sub">Instrukcja ustawień fabrycznych w jednym kroku</p></div>
+    <div class="htext"><h1>Wyszukiwarka instrukcji</h1><p class="sub">Instrukcja ustawień fabrycznych w jednym kroku</p></div>
+    <svg class="detective" viewBox="0 0 80 80" role="img" aria-label="Detektyw z lupą">
+      <path d="M10 80c1-14 10-22 28-22s27 8 30 22z" fill="var(--coat)"/>
+      <path d="M31 58l7 12 7-12z" fill="var(--panel)"/>
+      <path d="M36.8 61h2.4l1.4 3-2.6 9.5-2.6-9.5z" fill="var(--accent)"/>
+      <path d="M29.5 57.5l8.5 12.5-5.5-.8-6.5-9.4z" fill="var(--coat-dark)"/>
+      <path d="M46.5 57.5L38 70l5.5-.8 6.5-9.4z" fill="var(--coat-dark)"/>
+      <path d="M38 70v10" stroke="var(--coat-dark)" stroke-width="1.2"/>
+      <circle cx="34.5" cy="75.5" r="1.3" fill="var(--coat-dark)"/>
+      <circle cx="41.5" cy="75.5" r="1.3" fill="var(--coat-dark)"/>
+      <path d="M33 46h10v9.5l-5 3-5-3z" fill="var(--skin-sh)"/>
+      <ellipse cx="25.6" cy="37.5" rx="2.6" ry="3.6" fill="var(--skin)"/>
+      <path d="M25.3 36q1.2 1.5 0 3" stroke="var(--skin-sh)" stroke-width="1" fill="none"/>
+      <ellipse cx="38" cy="36" rx="12.5" ry="13.5" fill="var(--skin)"/>
+      <path d="M26 29.5c-.3 3 0 5.5 1.3 7l1.3-8.2z" fill="var(--feat)"/>
+      <path d="M28.6 31.4q3-2.2 6.2-.3" stroke="var(--feat)" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+      <ellipse cx="31.8" cy="35.2" rx="1.5" ry="1.7" fill="var(--feat)"/>
+      <path d="M38.6 35.5q-2.6 4.8-.4 6.4q2 .6 3.1-.8" stroke="var(--skin-sh)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M32.5 45.2q5.5-3.6 11 0q-2.7 2.1-5.5.6q-2.8 1.5-5.5-.6z" fill="var(--feat)"/>
+      <path d="M14 26.2c7-3.6 15-5.2 24-5.2s17 1.6 24 5.2c-1.6 1.9-12 3.1-24 3.1s-22.4-1.2-24-3.1z" fill="var(--hat)"/>
+      <path d="M24 24c-.6-9 5-16 14-16s14.6 7 14 16c-4 1-9 1.7-14 1.7S28 25 24 24z" fill="var(--hat)"/>
+      <path d="M32.5 11c2 2.4 3.8 2.4 5.5 0 1.7 2.4 3.5 2.4 5.5 0" stroke="var(--hat-hi)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="M24.1 20.8c4 1 9 1.6 13.9 1.6s9.9-.6 13.9-1.6l.2 3.1c-4 1-9 1.7-14.1 1.7s-10.1-.7-14.1-1.7z" fill="var(--accent)"/>
+      <path d="M16.5 26.4c6-2.6 13.5-3.7 21.5-3.7" stroke="var(--hat-hi)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <line x1="52.4" y1="41.6" x2="62.5" y2="51.8" stroke="var(--hat)" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="46" cy="35" r="9" fill="var(--lens)" stroke="var(--accent)" stroke-width="3"/>
+      <path d="M41 29.6q5-3.1 10-.2" stroke="var(--feat)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="46.2" cy="35.4" r="4.2" fill="#ffffff"/>
+      <circle cx="46.8" cy="35.8" r="2.5" fill="var(--feat)"/>
+      <circle cx="47.6" cy="34.9" r=".8" fill="#ffffff"/>
+      <path d="M40.3 31.6a7 7 0 0 1 4.6-3.3" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75"/>
+      <path d="M57.5 67c2.4-5.6 2.8-10.6 2-15.6l6.3-1.4c1.3 5.6.7 12-2.3 18.6z" fill="var(--coat)"/>
+      <path d="M59.3 51.6l6.5-1.5.6 2.8-6.5 1.5z" fill="var(--coat-dark)"/>
+      <ellipse cx="60.7" cy="48.3" rx="4.3" ry="3.6" transform="rotate(-40 60.7 48.3)" fill="var(--skin)"/>
+      <path d="M57.6 47.2q1.5-1 2.4.6M59 45.6q1.5-1 2.4.6M60.6 44.2q1.4-.8 2.2.6" stroke="var(--skin-sh)" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <path d="M56.8 49.6q1.6 1.2 3.4.2" stroke="var(--skin-sh)" stroke-width="1" fill="none" stroke-linecap="round"/>
+    </svg>
   </header>
 
   <section class="phrase">
-    <span class="label">Fraza wyszukiwania</span>
-    <div class="prefix"><b>Wyszukaj dla mnie instrukcję resetu lub ustawień fabrycznych produktu:</b></div>
     <input id="q" type="text" inputmode="text" autocomplete="off" placeholder="EAN, nazwa lub model">
     <div class="meta" id="meta"></div>
     <div class="chipsbox" id="chipsBox" hidden>
@@ -135,11 +179,11 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <button id="modeWeb" type="button" aria-pressed="false">Zwykłe wyniki<small>lista stron</small></button>
   </div>
 
-  <div class="status" id="status" role="status">Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę.</div>
+  <div class="status" id="status" role="status"><strong>Włącz skaner i nakieruj aparat na kod EAN albo na napis z pudełka. Możesz też wpisać nazwę lub zeskanować kod z pudełka za pomocą skanera ręcznego.</strong></div>
 
   <a class="go" id="go" href="#" target="_blank" rel="noopener">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <span id="goLabel">Zapytaj Gemini</span>
+    <span id="goLabel">Pokaż instrukcję</span>
   </a>
 
   <section class="hist" id="histBox" hidden>
@@ -147,7 +191,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
     <ul id="hist"></ul>
   </section>
 
-  <footer>Obraz z aparatu zostaje na telefonie, do Google trafia tylko tekst.<span class="ver">v. 0.2</span></footer>
+  <footer><span class="ver">v. 1.2</span></footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -183,7 +227,7 @@ try{ aiMode = localStorage.getItem("reset-skaner-mode") !== "web"; }catch(e){}
 function setMode(ai){
   aiMode = ai;
   $("modeAi").setAttribute("aria-pressed", ai); $("modeWeb").setAttribute("aria-pressed", !ai);
-  $("goLabel").textContent = ai ? "Zapytaj Gemini" : "Szukaj w Google";
+  $("goLabel").textContent = ai ? "Pokaż instrukcję" : "Szukaj w Google";
   try{ localStorage.setItem("reset-skaner-mode", ai ? "ai" : "web"); }catch(e){}
   update();
 }
@@ -301,10 +345,53 @@ function cleanLine(t){
     .filter(w => (w.match(/[\p{L}\p{N}]/gu) || []).length / w.length >= 0.7);
   return words.join(" ");
 }
+const BRANDS = ["Xiaomi","Redmi","POCO","Mi","Samsung","Huawei","Honor","Apple","iPhone","iPad","AirPods","Sony","LG","Philips","Panasonic","Lenovo","Motorola","Nokia","Oppo","Realme","OnePlus","Vivo","Google","Pixel","Garmin","Amazfit","Fitbit","Polar","Suunto","Bosch","Siemens","Tefal","Rowenta","Moulinex","Krups","Braun","Gillette","Oral-B","Remington","Dyson","Karcher","Electrolux","AEG","Whirlpool","Beko","Amica","Gorenje","Candy","Hoover","Indesit","Zelmer","Sencor","Tesla","Hisense","TCL","Sharp","Toshiba","Hitachi","JVC","Pioneer","Kenwood","Denon","Marantz","Yamaha","JBL","Harman","Kardon","Bose","Sennheiser","Beats","Marshall","Edifier","Logitech","Razer","SteelSeries","HyperX","Corsair","Asus","Acer","Dell","HP","MSI","Gigabyte","Intel","AMD","Nvidia","TP-Link","Tenda","Netgear","D-Link","Linksys","Ubiquiti","MikroTik","Zyxel","Synology","Xbox","PlayStation","Nintendo","Canon","Nikon","Fujifilm","Olympus","GoPro","DJI","Insta360","Epson","Brother","Kodak","Anker","Baseus","Ugreen","Belkin","Hama","Media-Tech","Manta","Kruger","Matz","Blaupunkt","Grundig","Thomson","Philco","Haier","Midea","Gree","Daikin","Ecovacs","Roborock","Dreame","iRobot","Roomba","Tineco","Eufy","Arlo","Ezviz","Imou","Reolink","Hikvision","Dahua","Yeelight","Govee","Aqara","Tuya","Sonoff","Shelly","Mibro","Haylou","QCY","Soundcore","Jabra","Plantronics","Shure","Rode","Blackview","Ulefone","Doogee","Oukitel","Cubot","myPhone","Maxcom","Alcatel","Crosscall","Fairphone","Meizu","ZTE","Infinix","Tecno","Philips Hue","Delonghi","De'Longhi","Nespresso","Dolce Gusto","Melitta","Saeco","Jura","Tristar","Severin","Clatronic","Bomann","Esperanza","Lamart","Vivax","Ravanson","Eldom","MPM","Teesa","Overmax","Kiano","Goclever","Navitel","TomTom","Xblitz","Vantrue","70mai","AmazonBasics","Nebula","INIU","Aukey","RAVPower","Mophie","Spigen","ESR","Charmast","Ninja","Shark","Cosori","KitchenAid","Proscenic","Lefant","Yeedi","Narwal","Neato","Bissell","Vileda","Leifheit","WMF","SodaStream","Brita","Tapo","Kasa","Meross","SwitchBot","Nanoleaf","LIFX","Osram","Ledvance","Paulmann","Wyze","Blink","Eero","Netatmo","Tado","Honeywell","Somfy","Danfoss","Sonos","Skullcandy","Audio-Technica","AKG","Beyerdynamic","FiiO","TOZO","SoundPEATS","EarFun","Tribit","Olufsen","Teufel","Klipsch","Onkyo","Fossil","Withings","Coros","Wahoo","Bryton","Kobo","PocketBook","Tolino","reMarkable","Wacom","Huion","XP-Pen","Kingston","SanDisk","Seagate","Crucial","Lexar","Transcend","Verbatim","Netac","Patriot","AVM","FRITZ!Box","Devolo","Mercusys","Cudy","Teltonika","Xerox","Dymo","Niimbot","Phomemo","Polaroid","Instax","Ricoh","Tamron","Godox","Neewer","Elgato","Fifine","Maono","Boya","Hollyland","Zhiyun","FeiyuTech","Hohem","Akaso","Apeman","Victure","VTech","LeapFrog","Tonies","Oclean","Waterpik","Sonicare","BaByliss","ghd","Revlon","Laurastar","Medion","Speedlink","Sharkoon","CoolerMaster","NZXT","Thermaltake","Noctua","Deepcool","Roccat","Keychron","Ducky","Redragon","Havit","Doro","Emporia","Gigaset","Uniden","Brondi","Makita","DeWalt","Milwaukee","Einhell","Metabo","Ryobi","Worx","Parkside","Stanley","Black+Decker","Yato","Hikoki","Festool","Gardena","Husqvarna","Stihl","Stiga","Segway","Ninebot","Navee","Kugoo","Microsoft","Chromecast","Roku","FireTV","Gotie","Camry","Adler","Heinner","Berdsen"];
+/* Korekta marek: logo bywa ozdobne, więc OCR myli litery z cyframi (I/1, O/0, S/5, B/8 itd.) */
+const LOOK = {"0":"O","1":"I","2":"Z","3":"B","4":"A","5":"S","6":"G","7":"T","8":"B","9":"G","|":"I","!":"I","$":"S","@":"A"};
+function looseNorm(w){ return w.toUpperCase().replace(/[0-9|!$@]/g, c => LOOK[c]).replace(/L(?=$)/, "").replace(/[^A-Z]/g, ""); }
+function lev(a, b){
+  const m = a.length, n = b.length; if(!m) return n; if(!n) return m;
+  let prev = Array.from({length: n + 1}, (_, j) => j);
+  for(let i = 1; i <= m; i++){
+    const cur = [i];
+    for(let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+const BRAND_KEYS = BRANDS.filter(b => !b.includes(" ")).map(b => ({ name: b, key: b.toUpperCase().replace(/[^A-Z0-9]/g, ""), loose: looseNorm(b) }));
+const COMMON_WORDS = new Set("SENSOR SENSORS SMART BAND ACTIVE POWER SPEAKER WIRELESS CHARGER ROBOT VACUUM CLEANER CAMERA ROUTER WATCH KETTLE BLENDER TRACKER FITNESS SOUND HEADSET MOUSE KEYBOARD MONITOR TABLET PHONE PRINTER SCALE TOASTER MIXER DRILL GRINDER SCOOTER BATTERY CABLE ADAPTER STATION LIGHT STRIP PLUG SOCKET DOORBELL HEATER PURIFIER HUMIDIFIER DRYER SHAVER TRIMMER BRUSH SERIES MODEL VERSION EDITION GLOBAL DIGITAL SYSTEM DEVICE SPORT SPORTS STEREO PREMIUM ULTRA COLOR COLOUR SILVER BLACK WHITE GOLDEN SENIOR CENTER CONTROL REMOTE SECURE SECURITY SCREEN SCANNER CENSOR".split(" "));
+function matchBrand(word){
+  const raw = word.toUpperCase().replace(/[^A-Z0-9|!$@]/g, "");
+  if(raw.length < 2) return null;
+  const exact = BRAND_KEYS.find(b => b.key === raw);
+  if(exact) return exact.name;
+  if(COMMON_WORDS.has(raw)) return null;
+  if(raw.length < 4) return null;
+  const ln = looseNorm(raw);
+  let best = null, bestD = 99;
+  for(const b of BRAND_KEYS){
+    if(b.key.length < 4 || Math.abs(b.loose.length - ln.length) > 2) continue;
+    const d = Math.min(lev(ln, b.loose), lev(raw, b.key));
+    if(d < bestD){ bestD = d; best = b; }
+  }
+  const li = x => x.toLowerCase().replace(/l/g, "i");
+  const liHit = BRAND_KEYS.find(b => b.key.length >= 4 && li(b.name.replace(/[^A-Za-z0-9]/g, "")) === li(word.replace(/[^A-Za-z0-9]/g, "")));
+  if(liHit) return liHit.name;
+  if(!best) return null;
+  const confusable = /[0-9|!$@]/.test(raw) || /[a-z]/.test(word) && /[A-Z]{2}/.test(word);
+  const limit = confusable ? (best.key.length >= 5 ? 2 : 1) : (raw.length >= 6 && word === word.toUpperCase() ? 1 : 0);
+  return bestD <= limit ? best.name : null;
+}
+function fixBrands(text){
+  let brand = null;
+  const out = text.split(" ").map(w => { const b = matchBrand(w); if(b){ brand = brand || b; return b; } return w; }).join(" ");
+  return { text: out, brand };
+}
 function linesFrom(data){
   let lines = data.lines || [];
   if(!lines.length && data.blocks) data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(l => lines.push(l))));
-  return lines.map(l => ({ text: cleanLine(l.text || ""), conf: l.confidence || 0 }))
+  return lines.map(l => { const f = fixBrands(cleanLine(l.text || "")); return { text: f.text, brand: f.brand, conf: (l.confidence || 0) + (f.brand ? 25 : 0) }; })
     .filter(l => l.text.length >= 3 && l.conf >= 55)
     .sort((a, b) => b.conf - a.conf)
     .filter((l, i, arr) => arr.findIndex(x => x.text.toLowerCase() === l.text.toLowerCase()) === i)
@@ -359,9 +446,16 @@ async function readBox(blob, tryCode, canvas){
     try{
       const lines = await readBoxLocally(canvas || await (async () => { const im = await photoToCanvas(blob); return prepCanvas(im, 0, 0, im.naturalWidth, im.naturalHeight); })(), canvas ? 6 : 11);
       if(lines.length){
-        const best = lines.find(l => /\p{L}/u.test(l.text) && /\d/.test(l.text)) || lines[0];
-        q.value = best.text; update(); showChips(lines);
-        $("chips").firstChild && [...$("chips").children].forEach(c => c.classList.toggle("on", c.textContent === best.text));
+        const brandLine = lines.find(l => l.brand);
+        const others = lines.filter(l => l !== brandLine && !l.brand);
+        const main = others.find(l => /\p{L}/u.test(l.text) && /\d/.test(l.text)) || others[0];
+        let picked = [];
+        if(brandLine && main) picked = [brandLine, main];
+        else picked = [brandLine || main || lines[0]];
+        const brandName = brandLine && brandLine.text.split(" ").length <= 2 ? brandLine.brand : null;
+        q.value = (brandName && main && !main.text.toLowerCase().includes(brandName.toLowerCase()) ? brandName + " " + main.text : picked.map(l => l.text).join(" ")).trim();
+        update(); showChips(lines);
+        [...$("chips").children].forEach(c => c.classList.toggle("on", q.value.toLowerCase().includes(c.textContent.toLowerCase())));
         setStatus("Wpisałem najlepiej odczytany napis. Dotknij innych napisów poniżej, żeby je dodać lub usunąć.");
         return true;
       }
