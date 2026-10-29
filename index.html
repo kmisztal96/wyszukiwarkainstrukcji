@@ -245,7 +245,7 @@ footer{color:var(--muted);font-size:13px;text-align:center;display:flex;flex-dir
   </a>
 
 
-  <footer><span class="ver">v. 0.21 · by Miszti</span></footer>
+  <footer><span class="ver">v. 0.23 · by Miszti</span></footer>
 
 </div>
 <div class="below">
@@ -603,6 +603,7 @@ function stopLive(){
   unfreeze(); setBusy(false);
   torchOn = false; $("camTorch").hidden = true; $("camTorch").setAttribute("aria-pressed", "false");
   $("camBox").hidden = true; $("btnLive").hidden = false;
+  holdTop = false;
   /* Po zamknięciu aparatu wracamy na górę strony, do pola tekstowego */
   requestAnimationFrame(() => { try{ window.scrollTo({ top: 0, behavior: "smooth" }); }catch(e){ window.scrollTo(0, 0); } });
 }
@@ -629,6 +630,7 @@ $("btnLive").addEventListener("click", async () => {
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.ZXing){
     setStatus("Ta przeglądarka nie daje dostępu do aparatu. Wpisz EAN, nazwę albo model ręcznie.", true); return;
   }
+  holdTop = false;
   setStatus("Uruchamiam aparat…");
   $("preview").hidden = true;
   try{
@@ -659,8 +661,15 @@ function centerCam(){
 $("video").addEventListener("loadedmetadata", () => { if(!$("camBox").hidden) centerCam(); });
 /* Gdy nad podglądem zmienia się zawartość (pole, napisy, komunikaty), podgląd zostaje na środku aż do „Koniec” */
 let keepRaf = 0;
+/* Po każdym odczycie pokazujemy górę strony z polem tekstowym;
+   podgląd wraca na środek, gdy znów dotkniesz zdjęcia albo „Skanuj ponownie” */
+var holdTop = false;
+function goTop(){
+  holdTop = true;
+  requestAnimationFrame(() => { try{ window.scrollTo({ top: 0, behavior: "smooth" }); }catch(e){ window.scrollTo(0, 0); } });
+}
 function keepCam(){
-  if($("camBox").hidden || drag) return;
+  if($("camBox").hidden || drag || holdTop) return;
   cancelAnimationFrame(keepRaf);
   keepRaf = requestAnimationFrame(() => { try{ $("camBox").scrollIntoView({ behavior: "auto", block: "center" }); }catch(e){} });
 }
@@ -878,7 +887,7 @@ async function readRegion(x, y, w, h, zoom){
   try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, false, zoom), psm)); }catch(e){}
   let best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
   if(best < 70){
-    setStatus("Sprawdzam jasny napis na ciemnym tle…");
+    setStatus("Napis jest niewyraźny, próbuję jeszcze raz…");
     try{ runs.push(await ocrCanvas(prepCanvas(frozen.img, x, y, w, h, true, zoom), psm)); }catch(e){}
     best = runs.flat().reduce((m, l) => Math.max(m, l.conf), 0);
   }
@@ -927,11 +936,13 @@ $("camText").addEventListener("click", async () => {
   setBusy(false);
   btn.disabled = false; btn.textContent = "Zatrzymaj i odczytaj";
   if(ok) success();
+  goTop();
 });
 /* Zaznaczanie palcem na zatrzymanym obrazie */
 let drag = null;
 $("freeze").addEventListener("pointerdown", e => {
   if(!frozen || busyOn) return;
+  holdTop = false;
   const r = $("camBox").getBoundingClientRect();
   drag = { x0: e.clientX - r.left, y0: e.clientY - r.top, x1: e.clientX - r.left, y1: e.clientY - r.top };
   $("freeze").setPointerCapture(e.pointerId); e.preventDefault();
@@ -959,8 +970,9 @@ $("freeze").addEventListener("pointerup", async () => {
   $("sel").hidden = true;
   if(addLines(lines, true)) success();
   else setStatus("W zaznaczonym miejscu nie odczytałem napisu. Zaznacz napis trochę szerzej, z małym marginesem.", true);
+  goTop();
 });
-$("camBack").onclick = () => { unfreeze(); setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku."); };
+$("camBack").onclick = () => { holdTop = false; unfreeze(); centerCam(); setStatus("Nakieruj ramkę na kod EAN albo na nazwę i model na pudełku."); };
 $("camDone").onclick = () => { stopLive(); setStatus("Sprawdź nazwę w polu i dotknij żółty przycisk."); };
 
 
